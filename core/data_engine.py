@@ -130,7 +130,7 @@ async def fetch_fear_greed() -> dict:
         pass
     return {"value":None,"classification":"unavailable"}
 
-async def fetch_coins_list(limit=50) -> list:
+async def fetch_coins_list(limit=50, page=1) -> list:
     try:
         async with httpx.AsyncClient(timeout=15) as c:
             r = await c.get(f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page={limit}&page=1&sparkline=true&price_change_percentage=1h,24h,7d")
