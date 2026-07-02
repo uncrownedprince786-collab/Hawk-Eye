@@ -1,4 +1,4 @@
-import json, os, asyncio
+import asyncio, json, os
 from datetime import datetime, timezone
 import httpx
 from dotenv import load_dotenv
@@ -16,6 +16,7 @@ from core.spoof_detector import SpoofDetector
 from core.sentiment import analyze_sentiment
 from core.agent import generate_trade_plan
 from services.streams import BinanceStream, FinnhubStream
+from core.config import FINNHUB_API_KEY, NEWS_DATA_KEY
 
 load_dotenv()
 app = FastAPI(title="Hawk Eye Terminal")
@@ -47,15 +48,13 @@ def _summarize_timeframe(df) -> dict:
     }
 
 async def _fetch_news_headlines(symbol: str) -> list:
-    key = os.getenv("NEWS_DATA_KEY")
-    if key:
-        try:
-            async with httpx.AsyncClient(timeout=12) as c:
-                r = await c.get("https://newsdata.io/api/1/news", params={"apikey":key,"q":symbol,"language":"en","size":5})
-                if r.status_code == 200:
-                    results = r.json().get("results",[])
-                    if results: return [{"headline":i.get("title") or i.get("description") or "","summary":(i.get("description") or "")[:200]} for i in results[:5]]
-        except: pass
+    try:
+        async with httpx.AsyncClient(timeout=12) as c:
+            r = await c.get("https://newsdata.io/api/1/news", params={"apikey":NEWS_DATA_KEY,"q":symbol,"language":"en","size":5})
+            if r.status_code == 200:
+                results = r.json().get("results",[])
+                if results: return [{"headline":i.get("title") or i.get("description") or "","summary":(i.get("description") or "")[:200]} for i in results[:5]]
+    except: pass
     return await fetch_news(symbol)
 
 def _enrich_coingecko(cg: dict, price: float|None=None) -> dict:
@@ -83,7 +82,33 @@ async def exchanges_page():
 
 @app.get("/learn", response_class=HTMLResponse)
 async def learn_page():
-    return HTMLResponse("""<html><head><title>Hawk Eye - Learn Trading</title><link rel="stylesheet" href="/static/css/style.css"></head><body><header class="header"><div class="header-inner"><a href="/" class="logo">HAWK EYE</a><nav class="nav"><a href="/" class="nav-link">Coins</a><a href="/exchanges" class="nav-link">Exchanges</a><a href="/learn" class="nav-link active">Learn</a></nav></div></header><main style="max-width:900px;margin:40px auto;padding:20px;"><h1 style="color:#f0b90b;">Trading Education Center</h1><div class="panel" style="margin-top:20px;"><h3 style="color:#3da5d9;">1. What is Trading?</h3><p>Buying and selling assets to profit from price movements. Buy low, sell high. Or short sell high, buy back low.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">2. Support & Resistance</h3><p><b>Support:</b> Price floor where buying pressure stops declines.<br><b>Resistance:</b> Price ceiling where selling pressure stops advances.<br>These levels come from previous highs/lows and volume clusters.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">3. RSI (Relative Strength Index)</h3><p>Measures momentum on a 0-100 scale.<br><b>Above 70:</b> Overbought - potential reversal down.<br><b>Below 30:</b> Oversold - potential reversal up.<br><b>50:</b> Neutral zone.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">4. MACD</h3><p>Trend-following momentum indicator.<br><b>MACD above Signal:</b> Bullish momentum.<br><b>MACD below Signal:</b> Bearish momentum.<br><b>Histogram:</b> Shows momentum strength.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">5. Risk Management</h3><p><b>1-2% Rule:</b> Never risk more than 1-2% per trade.<br><b>Stop Loss:</b> Always set before entering.<br><b>Risk/Reward:</b> Minimum 1:2. Risk $1 to make $2.<br><b>Position Size:</b> (Account x Risk%) / (Entry - Stop Loss) = Units.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">6. Fear & Greed Index</h3><p><b>Extreme Fear (0-25):</b> Often best time to buy.<br><b>Extreme Greed (75-100):</b> Often time to sell.<br>Contrarian investing: Buy when blood is in the streets.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">7. Candlestick Patterns</h3><p><b>Doji:</b> Open=Close. Indecision.<br><b>Hammer:</b> Long lower wick. Bullish reversal.<br><b>Shooting Star:</b> Long upper wick. Bearish reversal.<br><b>Engulfing:</b> Big candle swallows previous. Strong reversal signal.</p></div><p style="margin-top:30px;color:#848e9c;text-align:center;">Trade smart. Manage risk. Let data guide you.</p></main></body></html>""")
+    return HTMLResponse("""<html><head><title>Hawk Eye - Learn Trading</title><link rel="stylesheet" href="/static/css/style.css"></head><body><header class="header"><div class="header-inner"><a href="/" class="logo">HAWK EYE</a><nav class="nav"><a href="/" class="nav-link">Coins</a><a href="/exchanges" class="nav-link">Exchanges</a><a href="/learn" class="nav-link active">Learn</a></nav></div></header><main style="max-width:900px;margin:40px auto;padding:20px;"><h1 style="color:#f0b90b;">Trading Education Center</h1><div class="panel" style="margin-top:20px;"><h3 style="color:#3da5d9;">1. What is Trading?</h3><p>Buying and selling assets to profit from price movements. Buy low, sell high. Or short sell high, buy back low.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">2. Support & Resistance</h3><p><b>Support:</b> Price floor where buying pressure stops declines.<br><b>Resistance:</b> Price ceiling where selling pressure stops advances.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">3. RSI (Relative Strength Index)</h3><p>Measures momentum on a 0-100 scale.<br><b>Above 70:</b> Overbought - potential reversal down.<br><b>Below 30:</b> Oversold - potential reversal up.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">4. MACD</h3><p>Trend-following momentum indicator.<br><b>MACD above Signal:</b> Bullish momentum.<br><b>MACD below Signal:</b> Bearish momentum.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">5. Risk Management</h3><p><b>1-2% Rule:</b> Never risk more than 1-2% per trade.<br><b>Stop Loss:</b> Always set before entering.<br><b>Risk/Reward:</b> Minimum 1:2. Risk $1 to make $2.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">6. Fear & Greed Index</h3><p><b>Extreme Fear (0-25):</b> Often best time to buy.<br><b>Extreme Greed (75-100):</b> Often time to sell.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">7. Candlestick Patterns</h3><p><b>Doji:</b> Open=Close. Indecision.<br><b>Hammer:</b> Long lower wick. Bullish reversal.<br><b>Shooting Star:</b> Long upper wick. Bearish reversal.</p></div><p style="margin-top:30px;color:#848e9c;text-align:center;">Trade smart. Manage risk. Let data guide you.</p></main></body></html>""")
+
+@app.get("/api/stock/{symbol}")
+async def stock_quote(symbol: str):
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={FINNHUB_API_KEY}")
+            if resp.status_code == 200:
+                return JSONResponse(resp.json())
+    except: pass
+    return JSONResponse({"error": "Stock data unavailable"}, status_code=500)
+
+@app.get("/api/news")
+async def news_proxy():
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"https://finnhub.io/api/v1/news?category=general&token={FINNHUB_API_KEY}")
+            if resp.status_code == 200:
+                return JSONResponse(resp.json())
+    except: pass
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"https://newsdata.io/api/1/news?apikey={NEWS_DATA_KEY}&q=crypto&language=en&size=12")
+            if resp.status_code == 200:
+                return JSONResponse(resp.json())
+    except: pass
+    return JSONResponse([], status_code=500)
 
 @app.websocket("/ws/{symbol}")
 async def ws_endpoint(ws: WebSocket, symbol: str):

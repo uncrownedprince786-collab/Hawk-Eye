@@ -89,3 +89,5 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
     text-align: center;
     padding: 20px;
 }
+
+.loader{width:30px;height:30px;border:3px solid #2b2f36;border-top:3px solid #f0b90b;border-radius:50%;animation:spin 0.8s linear infinite;margin:10px auto}@keyframes spin{to{transform:rotate(360deg)}}.loading-row{text-align:center;padding:20px}
