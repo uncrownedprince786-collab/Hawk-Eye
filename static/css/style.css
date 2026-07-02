@@ -73,3 +73,19 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 .news-headline { color:var(--blue); font-size:13px; }
 .news-summary { color:var(--text-secondary); font-size:12px; margin-top:4px; }
 @media (max-width:768px) { .coin-grid{grid-template-columns:1fr;} .header-inner{flex-wrap:wrap;height:auto;padding:10px;} .search-input{width:100%;} .stats-bar{gap:16px;} }
+.loader {
+    width: 30px;
+    height: 30px;
+    border: 3px solid #2b2f36;
+    border-top: 3px solid #f0b90b;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 10px auto;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.loading-row {
+    text-align: center;
+    padding: 20px;
+}

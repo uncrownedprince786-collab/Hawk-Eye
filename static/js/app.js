@@ -26,7 +26,15 @@ function sparklineSVG(prices) {
     return `<svg width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/></svg>`;
 }
 
-// Landing Page
+// ============ LOADER ============
+function showLoader(id) {
+    document.getElementById(id).innerHTML = '<div class="loader"></div>';
+}
+function hideLoader(id) {
+    // handled by data load
+}
+
+// ============ LANDING PAGE ============
 if (window.location.pathname === '/' || window.location.pathname === '') {
     function showSection(name) {
         document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
@@ -41,10 +49,11 @@ if (window.location.pathname === '/' || window.location.pathname === '') {
     window.showSection = showSection;
 
     async function loadCoins(page = 1) {
+        const tbody = document.getElementById('coinTableBody');
+        if (page === 1) tbody.innerHTML = '<tr><td colspan="10" class="loading-row"><div class="loader"></div> Loading coins...</td></tr>';
         try {
             const resp = await fetch(API + '/api/coins?page=' + page + '&per_page=50');
             const coins = await resp.json();
-            const tbody = document.getElementById('coinTableBody');
             if (page === 1) tbody.innerHTML = '';
             tbody.innerHTML += coins.map((c,i) => `
                 <tr>
@@ -61,36 +70,37 @@ if (window.location.pathname === '/' || window.location.pathname === '') {
                 </tr>
             `).join('');
         } catch(e) {
-            document.getElementById('coinTableBody').innerHTML = '<tr><td colspan="10" class="loading-row">Failed. Retrying...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="loading-row">Failed. Retrying...</td></tr>';
             setTimeout(() => loadCoins(page), 5000);
         }
     }
-
     window.loadMoreCoins = function() { coinPage++; loadCoins(coinPage); };
 
     async function loadGainers() {
+        document.getElementById('gainersBody').innerHTML = '<tr><td colspan="6" class="loading-row"><div class="loader"></div> Loading...</td></tr>';
         try {
             const resp = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_desc&per_page=20&sparkline=false&price_change_percentage=24h');
             const coins = await resp.json();
             document.getElementById('gainersBody').innerHTML = coins.map((c,i) => `
                 <tr><td>${i+1}</td><td><span class="coin-name" onclick="window.location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span><span class="coin-symbol">${c.symbol.toUpperCase()}</span></td><td>${formatPrice(c.current_price)}</td><td>${formatChange(c.price_change_percentage_24h_in_currency)}</td><td>${formatLarge(c.total_volume)}</td><td>${formatLarge(c.market_cap)}</td></tr>
             `).join('');
-        } catch(e) { document.getElementById('gainersBody').innerHTML = '<tr><td colspan="6">Failed.</td></tr>'; }
+        } catch(e) { document.getElementById('gainersBody').innerHTML = '<tr><td colspan="6">Failed to load gainers.</td></tr>'; }
     }
 
     async function loadLosers() {
+        document.getElementById('losersBody').innerHTML = '<tr><td colspan="6" class="loading-row"><div class="loader"></div> Loading...</td></tr>';
         try {
             const resp = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_asc&per_page=20&sparkline=false&price_change_percentage=24h');
             const coins = await resp.json();
             document.getElementById('losersBody').innerHTML = coins.map((c,i) => `
                 <tr><td>${i+1}</td><td><span class="coin-name" onclick="window.location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span><span class="coin-symbol">${c.symbol.toUpperCase()}</span></td><td>${formatPrice(c.current_price)}</td><td>${formatChange(c.price_change_percentage_24h_in_currency)}</td><td>${formatLarge(c.total_volume)}</td><td>${formatLarge(c.market_cap)}</td></tr>
             `).join('');
-        } catch(e) { document.getElementById('losersBody').innerHTML = '<tr><td colspan="6">Failed.</td></tr>'; }
+        } catch(e) { document.getElementById('losersBody').innerHTML = '<tr><td colspan="6">Failed to load losers.</td></tr>'; }
     }
 
     async function loadStocks() {
         const symbols = ['AAPL','MSFT','GOOGL','AMZN','NVDA','TSLA','META','JPM','V','JNJ','WMT','PG','MA','UNH','HD','BAC','DIS','NFLX','ADBE','CRM'];
-        document.getElementById('stocksBody').innerHTML = '<tr><td colspan="7" class="loading-row">Loading stocks...</td></tr>';
+        document.getElementById('stocksBody').innerHTML = '<tr><td colspan="7" class="loading-row"><div class="loader"></div> Loading stocks...</td></tr>';
         let html = '';
         for (const sym of symbols) {
             try {
@@ -98,21 +108,35 @@ if (window.location.pathname === '/' || window.location.pathname === '') {
                 const d = await r.json();
                 if (d.c) {
                     const change = d.dp || 0;
-                    html += `<tr><td>${sym}</td><td><span class="coin-name" onclick="window.location.href='/coin?symbol=${sym}'">${sym}</span></td><td>$${d.c.toFixed(2)}</td><td>${formatChange(change)}</td><td>--</td><td>--</td><td>--</td></tr>`;
+                    html += `<tr><td>${sym}</td><td><span class="coin-name" onclick="window.location.href='/coin?symbol=${sym}'">${sym}</span></td><td>$${d.c.toFixed(2)}</td><td>${formatChange(change)}</td><td>--</td><td>--</td><td>--</td><td><button class="trade-btn" onclick="window.location.href='/coin?symbol=${sym}'">TRADE</button></td></tr>`;
                 }
             } catch(e) {}
         }
-        document.getElementById('stocksBody').innerHTML = html || '<tr><td colspan="7">Stock data unavailable.</td></tr>';
+        document.getElementById('stocksBody').innerHTML = html || '<tr><td colspan="8">Stock data unavailable. Try again later.</td></tr>';
     }
 
     async function loadNews() {
+        document.getElementById('newsGrid').innerHTML = '<div class="loader"></div><p>Loading news...</p>';
         try {
             const resp = await fetch('https://newsdata.io/api/1/news?apikey=pub_1726eded7cae428f8533ca7ca5acd8da&q=crypto&language=en&size=12');
             const data = await resp.json();
-            document.getElementById('newsGrid').innerHTML = data.results?.map(a => `
-                <div class="news-card"><h3>${a.title}</h3><p>${(a.description||'').slice(0,200)}</p><small style="color:#848e9c;">${a.source_id} | ${new Date(a.pubDate).toLocaleDateString()}</small></div>
-            `).join('') || '<p>No news available.</p>';
-        } catch(e) { document.getElementById('newsGrid').innerHTML = '<p>Failed to load news.</p>'; }
+            if (data.status === 'success' && data.results) {
+                document.getElementById('newsGrid').innerHTML = data.results.map(a => `
+                    <div class="news-card"><h3>${a.title}</h3><p>${(a.description||'').slice(0,200)}</p><small style="color:#848e9c;">${a.source_id} | ${new Date(a.pubDate).toLocaleDateString()}</small></div>
+                `).join('');
+                return;
+            }
+        } catch(e) {}
+        // Fallback: Finnhub
+        try {
+            const resp = await fetch('https://finnhub.io/api/v1/news?category=general&token=d92fcnpr01qraam0nuigd92fcnpr01qraam0nuj0');
+            const data = await resp.json();
+            document.getElementById('newsGrid').innerHTML = data.slice(0,12).map(a => `
+                <div class="news-card"><h3>${a.headline}</h3><p>${(a.summary||'').slice(0,200)}</p><small style="color:#848e9c;">${a.source}</small></div>
+            `).join('');
+        } catch(e2) {
+            document.getElementById('newsGrid').innerHTML = '<p>News unavailable. Try again later.</p>';
+        }
     }
 
     async function loadStats() {
@@ -133,12 +157,14 @@ if (window.location.pathname === '/' || window.location.pathname === '') {
     document.addEventListener('DOMContentLoaded', () => { loadCoins(); loadStats(); });
 }
 
-// Coin Detail Page
+// ============ COIN DETAIL PAGE ============
 if (window.location.pathname === '/coin') {
     const params = new URLSearchParams(window.location.search);
     const symbol = params.get('symbol') || 'BTCUSDT';
 
     async function loadCoinData() {
+        document.getElementById('priceChart').style.display = 'none';
+        document.getElementById('newsFeed').innerHTML = '<div class="loader"></div> Loading...';
         try {
             const resp = await fetch(API + '/analyze', {
                 method: 'POST',
@@ -168,7 +194,10 @@ if (window.location.pathname === '/coin') {
             const fg = snap.fear_greed || {};
             document.getElementById('sentimentData').innerHTML = `<div class="stat-row"><span>Fear & Greed</span><span>${fg.value||'--'} - ${fg.classification||'--'}</span></div>`;
             const tech = snap.technicals_1d || {};
-            if (tech.recent_candles) drawChart(tech.recent_candles);
+            if (tech.recent_candles) {
+                document.getElementById('priceChart').style.display = 'block';
+                drawChart(tech.recent_candles);
+            }
         } catch(e) { console.error(e); }
     }
 
@@ -190,7 +219,7 @@ if (window.location.pathname === '/coin') {
     }
 
     async function generateTradePlan() {
-        document.getElementById('tradePlan').innerHTML = '<p class="placeholder">Generating...</p>';
+        document.getElementById('tradePlan').innerHTML = '<div class="loader"></div><p class="placeholder">Generating analysis...</p>';
         try {
             const resp = await fetch(API + '/analyze', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
@@ -198,7 +227,7 @@ if (window.location.pathname === '/coin') {
             });
             const data = await resp.json();
             document.getElementById('tradePlan').textContent = data.trade_plan || 'Failed.';
-        } catch(e) { document.getElementById('tradePlan').innerHTML = '<p class="placeholder">Error.</p>'; }
+        } catch(e) { document.getElementById('tradePlan').innerHTML = '<p class="placeholder">Error generating plan. Try again.</p>'; }
     }
 
     window.generateTradePlan = generateTradePlan;
