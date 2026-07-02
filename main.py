@@ -16,7 +16,7 @@ from core.spoof_detector import SpoofDetector
 from core.sentiment import analyze_sentiment
 from core.agent import generate_trade_plan
 from services.streams import BinanceStream, FinnhubStream
-from core.config import GROQ_API_KEY, GEMINI_API_KEY, FINNHUB_API_KEY, NEWS_DATA_KEY
+from core.config import FINNHUB_API_KEY, NEWS_DATA_KEY
 
 load_dotenv()
 app = FastAPI(title="Hawk Eye Terminal")
@@ -48,9 +48,7 @@ def _summarize_timeframe(df) -> dict:
     }
 
 async def _fetch_coin_news(symbol: str) -> list:
-    """Get trading/finance news for a specific coin."""
     query = symbol.replace("USDT","").replace("USD","")
-    # Try NewsData first with finance category
     if NEWS_DATA_KEY:
         try:
             async with httpx.AsyncClient(timeout=12) as c:
@@ -59,8 +57,20 @@ async def _fetch_coin_news(symbol: str) -> list:
                 if r.status_code == 200 and r.json().get("results"):
                     return [{"headline":i.get("title",""),"summary":(i.get("description") or "")[:200]} for i in r.json()["results"][:5]]
         except: pass
-    # Fallback to generic Finnhub news
     return await fetch_news(symbol)
+
+async def _fetch_coingecko_ohlc(symbol: str, days=30) -> list:
+    coin_id = symbol.lower().replace("usdt","").replace("usd","")
+    cg_map = {"btc":"bitcoin","eth":"ethereum","sol":"solana","bnb":"binancecoin","xrp":"ripple","ada":"cardano","doge":"dogecoin","dot":"polkadot","matic":"matic-network","avax":"avalanche-2","link":"chainlink","uni":"uniswap","ltc":"litecoin","atom":"cosmos","near":"near","paxg":"pax-gold"}
+    cid = cg_map.get(coin_id, coin_id)
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(f"https://api.coingecko.com/api/v3/coins/{cid}/ohlc?vs_currency=usd&days={days}")
+            if r.status_code == 200:
+                data = r.json()
+                return [{"open":d[1],"high":d[2],"low":d[3],"close":d[4],"volume":0} for d in data]
+    except: pass
+    return []
 
 def _enrich_coingecko(cg: dict, price: float|None=None) -> dict:
     if not cg: return cg
@@ -101,11 +111,9 @@ async def stock_quote(symbol: str):
 
 @app.get("/api/news")
 async def news_proxy(symbol: str = ""):
-    """Get trading news. If symbol provided, coin-specific news."""
     if symbol:
         news = await _fetch_coin_news(symbol)
         return JSONResponse(news)
-    # General trading news
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(f"https://finnhub.io/api/v1/news?category=general&token={FINNHUB_API_KEY}")
@@ -166,14 +174,15 @@ async def analyze(request: Request):
             if not price_data: return JSONResponse({"error":"Invalid stock symbol"}, status_code=400)
             technicals = compute_multi_timeframe_technicals(symbol, "stock")
 
-        # Ensure recent_candles for chart
-        if df is not None and not df.empty:
-            technicals["recent_candles"] = [{"open":float(r["O"]),"high":float(r["H"]),"low":float(r["L"]),"close":float(r["C"]),"volume":float(r["V"])} for _,r in df.tail(30).iterrows()]
-        elif asset_type == "stock":
-            import yfinance as yf
-            hist = yf.Ticker(symbol).history(period="1mo")
-            if not hist.empty:
-                technicals["recent_candles"] = [{"open":float(r["Open"]),"high":float(r["High"]),"low":float(r["Low"]),"close":float(r["Close"]),"volume":float(r["Volume"])} for _,r in hist.tail(30).iterrows()]
+        # Ensure recent_candles
+        if isinstance(technicals, dict) and not technicals.get("error"):
+            if df is not None and not df.empty:
+                technicals["recent_candles"] = [{"open":float(r["O"]),"high":float(r["H"]),"low":float(r["L"]),"close":float(r["C"]),"volume":float(r["V"])} for _,r in df.tail(30).iterrows()]
+            # Fallback to CoinGecko if Binance gave no candles
+            if (not technicals.get("recent_candles") or len(technicals.get("recent_candles",[])) < 5) and asset_type in ("crypto","commodity"):
+                cg_candles = await _fetch_coingecko_ohlc(symbol, 30)
+                if cg_candles and len(cg_candles) >= 5:
+                    technicals["recent_candles"] = cg_candles
 
         coingecko_data = _enrich_coingecko(coingecko_data, price_data.get("price"))
         fear_greed = await fetch_fear_greed()
