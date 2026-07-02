@@ -221,5 +221,16 @@ async def analyze(request: Request):
         return JSONResponse({"error":str(e)}, status_code=500)
 
 @app.on_event("shutdown")
+
+@app.get("/api/price/{symbol}")
+async def price_ticker(symbol: str):
+    try:
+        price_data = await fetch_binance_ticker(symbol.upper())
+        if price_data:
+            return JSONResponse(price_data)
+    except:
+        pass
+    return JSONResponse({"price": 0}, status_code=500)
 async def shutdown():
     await binance_stream.close(); await finnhub_stream.close()
+

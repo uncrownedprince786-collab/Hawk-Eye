@@ -38,16 +38,16 @@ if(location.pathname==='/'||location.pathname===''){
     try{
       const r=await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_desc&per_page=20&sparkline=false&price_change_percentage=24h');
       const c=await r.json();
-      document.getElementById('gainersBody').innerHTML=c.map((c,i)=>`<tr><td>${i+1}</td><td><span class="coin-name" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span><span class="coin-symbol">${c.symbol.toUpperCase()}</span></td><td>${fP(c.current_price)}</td><td>${fC(c.price_change_percentage_24h_in_currency)}</td><td>${fL(c.total_volume)}</td><td>${fL(c.market_cap)}</td></tr>`).join('');
-    }catch(e){document.getElementById('gainersBody').innerHTML='<tr><td colspan="6">Failed.</td></tr>'}
+      document.getElementById('gainersBody').innerHTML=c.map((c,i)=>`<tr><td>${i+1}</td><td><span class="coin-name" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span><span class="coin-symbol">${c.symbol.toUpperCase()}</span></td><td>${fP(c.current_price)}</td><td>${fC(c.price_change_percentage_24h_in_currency)}</td><td>${fL(c.total_volume)}</td><td>${fL(c.market_cap)}</td><td><button class="trade-btn" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">TRADE</button></td></tr>`).join('');
+    }catch(e){document.getElementById('gainersBody').innerHTML='<tr><td colspan="7">Failed.</td></tr>'}
   }
   async function loadLosers(){
     document.getElementById('losersBody').innerHTML=`<tr><td colspan="6" class="loading-row">${L} Loading...</td></tr>`;
     try{
       const r=await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_asc&per_page=20&sparkline=false&price_change_percentage=24h');
       const c=await r.json();
-      document.getElementById('losersBody').innerHTML=c.map((c,i)=>`<tr><td>${i+1}</td><td><span class="coin-name" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span><span class="coin-symbol">${c.symbol.toUpperCase()}</span></td><td>${fP(c.current_price)}</td><td>${fC(c.price_change_percentage_24h_in_currency)}</td><td>${fL(c.total_volume)}</td><td>${fL(c.market_cap)}</td></tr>`).join('');
-    }catch(e){document.getElementById('losersBody').innerHTML='<tr><td colspan="6">Failed.</td></tr>'}
+      document.getElementById('losersBody').innerHTML=c.map((c,i)=>`<tr><td>${i+1}</td><td><span class="coin-name" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span><span class="coin-symbol">${c.symbol.toUpperCase()}</span></td><td>${fP(c.current_price)}</td><td>${fC(c.price_change_percentage_24h_in_currency)}</td><td>${fL(c.total_volume)}</td><td>${fL(c.market_cap)}</td><td><button class="trade-btn" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">TRADE</button></td></tr>`).join('');
+    }catch(e){document.getElementById('losersBody').innerHTML='<tr><td colspan="7">Failed.</td></tr>'}
   }
   async function loadStocks(){
     const syms=['AAPL','MSFT','GOOGL','AMZN','NVDA','TSLA','META','JPM','V','JNJ','WMT','PG','MA','UNH','HD','BAC','DIS','NFLX','ADBE','CRM'];
@@ -86,6 +86,8 @@ if(location.pathname==='/'||location.pathname===''){
 if(location.pathname==='/coin'){
   const p=new URLSearchParams(location.search);
   const sym=p.get('symbol')||'BTCUSDT';
+  let chartData = [];
+
   async function loadCoinData(){
     document.getElementById('priceChart').style.display='none';
     document.getElementById('newsFeed').innerHTML=L+' Loading coin news...';
@@ -110,7 +112,6 @@ if(location.pathname==='/coin'){
       document.getElementById('statSupply').textContent=cg.circ_supply?(cg.circ_supply/1e6).toFixed(2)+'M':'--';
       document.getElementById('statMaxSupply').textContent=cg.max_supply?(cg.max_supply/1e6).toFixed(2)+'M':'Unlimited';
       
-      // Load coin-specific news
       const newsResp = await fetch(API+'/api/news?symbol='+sym);
       const newsData = await newsResp.json();
       const nw = Array.isArray(newsData) ? newsData : (sn.news||[]);
@@ -120,24 +121,58 @@ if(location.pathname==='/coin'){
       document.getElementById('sentimentData').innerHTML=`<div class="stat-row"><span>Fear & Greed</span><span>${fg.value||'--'} - ${fg.classification||'--'}</span></div>`;
       const tech=sn.technicals_1d||{};
       if(tech.recent_candles&&tech.recent_candles.length>1){
+        chartData = tech.recent_candles;
         document.getElementById('priceChart').style.display='block';
-        drawChart(tech.recent_candles);
+        drawChart();
+        startLiveUpdates();
       }
     }catch(e){console.error(e)}
   }
-  function drawChart(candles){
+
+  function drawChart(){
     const cv=document.getElementById('priceChart');
     if(!cv)return;
-    cv.width=cv.offsetWidth||800;cv.height=350;
+    const W=cv.width=cv.offsetWidth||800, H=cv.height=350;
     const ctx=cv.getContext('2d');
-    const closes=candles.map(c=>c.close);
+    const closes=chartData.map(c=>c.close);
     if(closes.length<2)return;
-    const mn=Math.min(...closes)*0.999,mx=Math.max(...closes)*1.001,r=mx-mn||1;
-    ctx.fillStyle='#0c0e11';ctx.fillRect(0,0,cv.width,cv.height);
+    const mn=Math.min(...closes)*0.999, mx=Math.max(...closes)*1.001, r=mx-mn||1;
+    ctx.clearRect(0,0,W,H);
+    // Grid lines
+    ctx.strokeStyle='#1e2729';ctx.lineWidth=0.5;
+    for(let i=0;i<=4;i++){const y=(H/4)*i;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+    // Price line
     ctx.beginPath();ctx.strokeStyle='#f0b90b';ctx.lineWidth=2;
-    closes.forEach((c,i)=>{const x=i*(cv.width/(closes.length-1)),y=cv.height-((c-mn)/r)*(cv.height-40)-20;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});
-    ctx.stroke();ctx.fillStyle='#eaecef';ctx.font='14px sans-serif';ctx.fillText('$'+closes[closes.length-1].toLocaleString(),10,30);
+    chartData.forEach((c,i)=>{
+      const x=i*(W/(chartData.length-1)), y=H-((c.close-mn)/r)*(H-40)-20;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    // Labels
+    ctx.fillStyle='#eaecef';ctx.font='12px sans-serif';
+    ctx.fillText('$'+mx.toFixed(2),5,15);
+    ctx.fillText('$'+mn.toFixed(2),5,H-5);
+    // Latest price
+    const last=closes[closes.length-1];
+    ctx.fillStyle='#f0b90b';ctx.font='bold 14px sans-serif';
+    ctx.fillText('$'+last.toLocaleString(),W-150,25);
   }
+
+  let liveInterval;
+  function startLiveUpdates(){
+    if(liveInterval)clearInterval(liveInterval);
+    liveInterval=setInterval(async ()=>{
+      try{
+        const r=await fetch(API+'/api/price/'+sym);
+        const d=await r.json();
+        if(d.price&&chartData.length>0){
+          chartData[chartData.length-1].close=d.price;
+          drawChart();
+        }
+      }catch(e){}
+    },10000);
+  }
+
   async function generateTradePlan(){
     document.getElementById('tradePlan').innerHTML=L+'<p class="placeholder">Generating...</p>';
     try{
