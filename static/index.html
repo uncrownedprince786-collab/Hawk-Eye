@@ -1,110 +1,77 @@
-﻿// Load Gainers with fallback
-async function loadGainers() {
-    try {
-        let resp = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_desc&per_page=20&sparkline=false&price_change_percentage=24h');
-        if (!resp.ok) throw new Error();
-        let coins = await resp.json();
-        renderGainersLosers(coins, 'gainersBody');
-    } catch(e) {
-        try {
-            let resp = await fetch('https://api.coincap.io/v2/assets?limit=20');
-            let data = await resp.json();
-            let sorted = data.data.sort((a,b) => parseFloat(b.changePercent24Hr) - parseFloat(a.changePercent24Hr));
-            let coins = sorted.map(d => ({
-                name: d.name, symbol: d.symbol.toUpperCase(),
-                current_price: parseFloat(d.priceUsd),
-                price_change_percentage_24h_in_currency: parseFloat(d.changePercent24Hr),
-                total_volume: parseFloat(d.volumeUsd24Hr),
-                market_cap: parseFloat(d.marketCapUsd)
-            }));
-            renderGainersLosers(coins, 'gainersBody');
-        } catch(e2) {
-            document.getElementById('gainersBody').innerHTML = '<tr><td colspan="6">Unavailable.</td></tr>';
-        }
-    }
-}
-
-// Load Losers with fallback
-async function loadLosers() {
-    try {
-        let resp = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_asc&per_page=20&sparkline=false&price_change_percentage=24h');
-        if (!resp.ok) throw new Error();
-        let coins = await resp.json();
-        renderGainersLosers(coins, 'losersBody');
-    } catch(e) {
-        try {
-            let resp = await fetch('https://api.coincap.io/v2/assets?limit=20');
-            let data = await resp.json();
-            let sorted = data.data.sort((a,b) => parseFloat(a.changePercent24Hr) - parseFloat(b.changePercent24Hr));
-            let coins = sorted.map(d => ({
-                name: d.name, symbol: d.symbol.toUpperCase(),
-                current_price: parseFloat(d.priceUsd),
-                price_change_percentage_24h_in_currency: parseFloat(d.changePercent24Hr),
-                total_volume: parseFloat(d.volumeUsd24Hr),
-                market_cap: parseFloat(d.marketCapUsd)
-            }));
-            renderGainersLosers(coins, 'losersBody');
-        } catch(e2) {
-            document.getElementById('losersBody').innerHTML = '<tr><td colspan="6">Unavailable.</td></tr>';
-        }
-    }
-}
-
-function renderGainersLosers(coins, elementId) {
-    document.getElementById(elementId).innerHTML = coins.slice(0,20).map((c,i) => `
-        <tr><td>${i+1}</td><td><span class="coin-name" onclick="window.location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span><span class="coin-symbol">${c.symbol.toUpperCase()}</span></td><td>${formatPrice(c.current_price)}</td><td>${formatChange(c.price_change_percentage_24h_in_currency)}</td><td>${formatLarge(c.total_volume)}</td><td>${formatLarge(c.market_cap)}</td></tr>
-    `).join('');
-}
-
-// Load Stocks with fallback
-async function loadStocks() {
-    const symbols = ['AAPL','MSFT','GOOGL','AMZN','NVDA','TSLA','META','JPM','V','JNJ'];
-    document.getElementById('stocksBody').innerHTML = '<tr><td colspan="7" class="loading-row">Loading stocks...</td></tr>';
-    let html = '';
-    for (const sym of symbols) {
-        try {
-            // Try Finnhub
-            let r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=d92fcnpr01qraam0nuigd92fcnpr01qraam0nuj0`);
-            let d = await r.json();
-            if (d.c && d.c > 0) {
-                html += `<tr><td>${sym}</td><td>${sym}</td><td>$${d.c.toFixed(2)}</td><td>${formatChange(d.dp||0)}</td><td>--</td><td>--</td><td>--</td></tr>`;
-                continue;
-            }
-        } catch(e) {}
-        // Fallback: Alpha Vantage
-        try {
-            let r = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${sym}&apikey=demo`);
-            let d = await r.json();
-            let q = d['Global Quote'];
-            if (q && q['05. price']) {
-                let change = parseFloat(q['10. change percent']?.replace('%','') || 0);
-                html += `<tr><td>${sym}</td><td>${sym}</td><td>$${parseFloat(q['05. price']).toFixed(2)}</td><td>${formatChange(change)}</td><td>--</td><td>--</td><td>--</td></tr>`;
-            }
-        } catch(e2) {}
-    }
-    document.getElementById('stocksBody').innerHTML = html || '<tr><td colspan="7">Stock data unavailable. Try again later.</td></tr>';
-}
-
-// Load News with fallback
-async function loadNews() {
-    try {
-        let r = await fetch('https://newsdata.io/api/1/news?apikey=pub_1726eded7cae428f8533ca7ca5acd8da&q=crypto&language=en&size=12');
-        let data = await r.json();
-        if (data.status === 'success' && data.results) {
-            document.getElementById('newsGrid').innerHTML = data.results.map(a => `
-                <div class="news-card"><h3>${a.title}</h3><p>${(a.description||'').slice(0,200)}</p><small style="color:#848e9c;">${a.source_id} | ${new Date(a.pubDate).toLocaleDateString()}</small></div>
-            `).join('');
-            return;
-        }
-    } catch(e) {}
-    // Fallback: Finnhub
-    try {
-        let r = await fetch('https://finnhub.io/api/v1/news?category=general&token=d92fcnpr01qraam0nuigd92fcnpr01qraam0nuj0');
-        let data = await r.json();
-        document.getElementById('newsGrid').innerHTML = data.slice(0,12).map(a => `
-            <div class="news-card"><h3>${a.headline}</h3><p>${(a.summary||'').slice(0,200)}</p><small style="color:#848e9c;">${a.source}</small></div>
-        `).join('');
-    } catch(e2) {
-        document.getElementById('newsGrid').innerHTML = '<p>News unavailable. Try again later.</p>';
-    }
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hawk Eye - Crypto & Stock Market Data</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a href="/" class="logo">HAWK EYE</a>
+            <nav class="nav">
+                <a href="/" class="nav-link active">Coins</a>
+                <a href="/exchanges" class="nav-link">Exchanges</a>
+                <a href="/learn" class="nav-link">Learn</a>
+            </nav>
+            <div class="header-right">
+                <input type="text" class="search-input" id="globalSearch" placeholder="Search coins or stocks..." autocomplete="off">
+            </div>
+        </div>
+    </header>
+    <main class="main">
+        <div class="stats-bar">
+            <div class="stat-item"><span class="stat-label">Total Market Cap</span><span class="stat-value" id="totalMcap">--</span></div>
+            <div class="stat-item"><span class="stat-label">24h Volume</span><span class="stat-value" id="totalVolume">--</span></div>
+            <div class="stat-item"><span class="stat-label">BTC Dominance</span><span class="stat-value" id="btcDom">--</span></div>
+            <div class="stat-item"><span class="stat-label">Fear & Greed</span><span class="stat-value" id="fearGreedVal">--</span></div>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="showSection('crypto')">Cryptocurrencies</button>
+            <button class="tab" onclick="showSection('gainers')">Top Gainers</button>
+            <button class="tab" onclick="showSection('losers')">Top Losers</button>
+            <button class="tab" onclick="showSection('stocks')">Stocks</button>
+            <button class="tab" onclick="showSection('news')">News</button>
+        </div>
+        <div id="cryptoSection" class="section">
+            <div class="table-container">
+                <table class="coin-table">
+                    <thead><tr><th>#</th><th>Name</th><th>Price</th><th>1h</th><th>24h</th><th>7d</th><th>24h Volume</th><th>Market Cap</th><th>7 Day Chart</th><th>Trade</th></tr></thead>
+                    <tbody id="coinTableBody"><tr><td colspan="10" class="loading-row">Loading...</td></tr></tbody>
+                </table>
+            </div>
+            <button class="btn-more" onclick="loadMoreCoins()">Load More</button>
+        </div>
+        <div id="gainersSection" class="section hidden">
+            <div class="table-container">
+                <table class="coin-table">
+                    <thead><tr><th>#</th><th>Name</th><th>Price</th><th>24h Change</th><th>Volume</th><th>Market Cap</th></tr></thead>
+                    <tbody id="gainersBody"><tr><td colspan="6" class="loading-row">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="losersSection" class="section hidden">
+            <div class="table-container">
+                <table class="coin-table">
+                    <thead><tr><th>#</th><th>Name</th><th>Price</th><th>24h Change</th><th>Volume</th><th>Market Cap</th></tr></thead>
+                    <tbody id="losersBody"><tr><td colspan="6" class="loading-row">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="stocksSection" class="section hidden">
+            <div class="table-container">
+                <table class="coin-table">
+                    <thead><tr><th>#</th><th>Name</th><th>Price</th><th>Change</th><th>Volume</th><th>Market Cap</th><th>P/E</th></tr></thead>
+                    <tbody id="stocksBody"><tr><td colspan="7" class="loading-row">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="newsSection" class="section hidden">
+            <div class="news-grid" id="newsGrid">Loading news...</div>
+        </div>
+    </main>
+    <div class="search-dropdown hidden" id="searchDropdown"></div>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
