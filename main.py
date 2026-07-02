@@ -16,7 +16,7 @@ from core.spoof_detector import SpoofDetector
 from core.sentiment import analyze_sentiment
 from core.agent import generate_trade_plan
 from services.streams import BinanceStream, FinnhubStream
-from core.config import FINNHUB_API_KEY, NEWS_DATA_KEY
+from core.config import GROQ_API_KEY, GEMINI_API_KEY, FINNHUB_API_KEY, NEWS_DATA_KEY
 
 load_dotenv()
 app = FastAPI(title="Hawk Eye Terminal")
@@ -47,14 +47,19 @@ def _summarize_timeframe(df) -> dict:
         "recent_candles":[{"open":float(r["O"]),"high":float(r["H"]),"low":float(r["L"]),"close":float(r["C"]),"volume":float(r["V"])} for _,r in recent.iterrows()]
     }
 
-async def _fetch_news_headlines(symbol: str) -> list:
-    try:
-        async with httpx.AsyncClient(timeout=12) as c:
-            r = await c.get("https://newsdata.io/api/1/news", params={"apikey":NEWS_DATA_KEY,"q":symbol,"language":"en","size":5})
-            if r.status_code == 200:
-                results = r.json().get("results",[])
-                if results: return [{"headline":i.get("title") or i.get("description") or "","summary":(i.get("description") or "")[:200]} for i in results[:5]]
-    except: pass
+async def _fetch_coin_news(symbol: str) -> list:
+    """Get trading/finance news for a specific coin."""
+    query = symbol.replace("USDT","").replace("USD","")
+    # Try NewsData first with finance category
+    if NEWS_DATA_KEY:
+        try:
+            async with httpx.AsyncClient(timeout=12) as c:
+                r = await c.get("https://newsdata.io/api/1/news",
+                    params={"apikey":NEWS_DATA_KEY,"q":f"{query} crypto","category":"business,finance","language":"en","size":5})
+                if r.status_code == 200 and r.json().get("results"):
+                    return [{"headline":i.get("title",""),"summary":(i.get("description") or "")[:200]} for i in r.json()["results"][:5]]
+        except: pass
+    # Fallback to generic Finnhub news
     return await fetch_news(symbol)
 
 def _enrich_coingecko(cg: dict, price: float|None=None) -> dict:
@@ -95,7 +100,12 @@ async def stock_quote(symbol: str):
     return JSONResponse({"error": "Stock data unavailable"}, status_code=500)
 
 @app.get("/api/news")
-async def news_proxy():
+async def news_proxy(symbol: str = ""):
+    """Get trading news. If symbol provided, coin-specific news."""
+    if symbol:
+        news = await _fetch_coin_news(symbol)
+        return JSONResponse(news)
+    # General trading news
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(f"https://finnhub.io/api/v1/news?category=general&token={FINNHUB_API_KEY}")
@@ -104,7 +114,7 @@ async def news_proxy():
     except: pass
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(f"https://newsdata.io/api/1/news?apikey={NEWS_DATA_KEY}&q=crypto&language=en&size=12")
+            resp = await client.get(f"https://newsdata.io/api/1/news?apikey={NEWS_DATA_KEY}&q=forex crypto stocks&category=business,finance&language=en&size=12")
             if resp.status_code == 200:
                 return JSONResponse(resp.json())
     except: pass
@@ -156,12 +166,18 @@ async def analyze(request: Request):
             if not price_data: return JSONResponse({"error":"Invalid stock symbol"}, status_code=400)
             technicals = compute_multi_timeframe_technicals(symbol, "stock")
 
-        if isinstance(technicals, dict) and not technicals.get("error") and df is not None and not df.empty:
-            technicals["recent_candles"] = [{"open":float(r["O"]),"high":float(r["H"]),"low":float(r["L"]),"close":float(r["C"]),"volume":float(r["V"])} for _,r in df.tail(5).iterrows()]
+        # Ensure recent_candles for chart
+        if df is not None and not df.empty:
+            technicals["recent_candles"] = [{"open":float(r["O"]),"high":float(r["H"]),"low":float(r["L"]),"close":float(r["C"]),"volume":float(r["V"])} for _,r in df.tail(30).iterrows()]
+        elif asset_type == "stock":
+            import yfinance as yf
+            hist = yf.Ticker(symbol).history(period="1mo")
+            if not hist.empty:
+                technicals["recent_candles"] = [{"open":float(r["Open"]),"high":float(r["High"]),"low":float(r["Low"]),"close":float(r["Close"]),"volume":float(r["Volume"])} for _,r in hist.tail(30).iterrows()]
 
         coingecko_data = _enrich_coingecko(coingecko_data, price_data.get("price"))
         fear_greed = await fetch_fear_greed()
-        news = await _fetch_news_headlines(symbol)
+        news = await _fetch_coin_news(symbol)
         sentiment = analyze_sentiment(news)
 
         sd = SpoofDetector()

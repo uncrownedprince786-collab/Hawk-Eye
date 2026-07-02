@@ -15,7 +15,7 @@ if(location.pathname==='/'||location.pathname===''){
     if(n==='gainers')loadGainers();
     if(n==='losers')loadLosers();
     if(n==='stocks')loadStocks();
-    if(n==='news')loadNews();
+    if(n==='news')loadGeneralNews();
   };
   async function loadCoins(page=1){
     const tb=document.getElementById('coinTableBody');
@@ -62,8 +62,8 @@ if(location.pathname==='/'||location.pathname===''){
     }
     document.getElementById('stocksBody').innerHTML=h||'<tr><td colspan="8">Stock data unavailable.</td></tr>'
   }
-  async function loadNews(){
-    document.getElementById('newsGrid').innerHTML=`${L}<p>Loading news...</p>`;
+  async function loadGeneralNews(){
+    document.getElementById('newsGrid').innerHTML=`${L}<p>Loading trading news...</p>`;
     try{
       const r=await fetch(API+'/api/news');
       const d=await r.json();
@@ -72,7 +72,7 @@ if(location.pathname==='/'||location.pathname===''){
       }else if(d.results){
         document.getElementById('newsGrid').innerHTML=d.results.slice(0,12).map(a=>`<div class="news-card"><h3>${a.title}</h3><p>${(a.description||'').slice(0,200)}</p><small style="color:#848e9c;">${a.source_id}</small></div>`).join('');
       }else{
-        document.getElementById('newsGrid').innerHTML='<p>No news available.</p>';
+        document.getElementById('newsGrid').innerHTML='<p>No trading news available.</p>';
       }
     }catch(e){document.getElementById('newsGrid').innerHTML='<p>News unavailable.</p>'}
   }
@@ -88,7 +88,7 @@ if(location.pathname==='/coin'){
   const sym=p.get('symbol')||'BTCUSDT';
   async function loadCoinData(){
     document.getElementById('priceChart').style.display='none';
-    document.getElementById('newsFeed').innerHTML=L+' Loading...';
+    document.getElementById('newsFeed').innerHTML=L+' Loading coin news...';
     try{
       const r=await fetch(API+'/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol:sym})});
       const d=await r.json();
@@ -109,12 +109,20 @@ if(location.pathname==='/coin'){
       document.getElementById('statVol').textContent=fL(cg.total_volume);
       document.getElementById('statSupply').textContent=cg.circ_supply?(cg.circ_supply/1e6).toFixed(2)+'M':'--';
       document.getElementById('statMaxSupply').textContent=cg.max_supply?(cg.max_supply/1e6).toFixed(2)+'M':'Unlimited';
-      const nw=sn.news||[];
-      document.getElementById('newsFeed').innerHTML=nw.length?nw.map(n=>`<div class="news-item"><div class="news-headline">${n.headline}</div><div class="news-summary">${n.summary}</div></div>`).join(''):'<p class="placeholder">No news</p>';
+      
+      // Load coin-specific news
+      const newsResp = await fetch(API+'/api/news?symbol='+sym);
+      const newsData = await newsResp.json();
+      const nw = Array.isArray(newsData) ? newsData : (sn.news||[]);
+      document.getElementById('newsFeed').innerHTML=nw.length?nw.map(n=>`<div class="news-item"><div class="news-headline">${n.headline||n.title}</div><div class="news-summary">${n.summary||n.description||''}</div></div>`).join(''):'<p class="placeholder">No news</p>';
+
       const fg=sn.fear_greed||{};
       document.getElementById('sentimentData').innerHTML=`<div class="stat-row"><span>Fear & Greed</span><span>${fg.value||'--'} - ${fg.classification||'--'}</span></div>`;
       const tech=sn.technicals_1d||{};
-      if(tech.recent_candles){document.getElementById('priceChart').style.display='block';drawChart(tech.recent_candles)}
+      if(tech.recent_candles&&tech.recent_candles.length>1){
+        document.getElementById('priceChart').style.display='block';
+        drawChart(tech.recent_candles);
+      }
     }catch(e){console.error(e)}
   }
   function drawChart(candles){
