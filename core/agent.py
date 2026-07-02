@@ -3,19 +3,24 @@ import google.generativeai as genai
 from .config import GROQ_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY
 import json
 
-# Initialize Groq
-groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+# ---------- Lazy client getters ----------
+_groq_client = None
+_gemini_model = None
 
-# Initialize Gemini
-gemini_model = None
-if GEMINI_API_KEY:
-    try:
+def _get_groq_client():
+    global _groq_client
+    if _groq_client is None and GROQ_API_KEY:
+        _groq_client = Groq(api_key=GROQ_API_KEY)
+    return _groq_client
+
+def _get_gemini_model():
+    global _gemini_model
+    if _gemini_model is None and GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
-        gemini_model = genai.GenerativeModel('gemini-1.5-flash')
-    except Exception as e:
-        print(f"Gemini init warning: {e}")
+        _gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+    return _gemini_model
 
-# Compact Judge prompt
+# ---------- Prompt ----------
 JUDGE = """You are World's No.1 Trader. Analyze ALL data. EDUCATE user with [WHY:] after every claim.
 
 SECTIONS REQUIRED:
@@ -39,7 +44,8 @@ FORMAT: Plain text. No markdown. No emojis."""
 def generate_trade_plan(data: dict) -> str:
     user_prompt = f"Data:\n{json.dumps(data, default=str)}\n\nDeliver complete trade plan with ALL sections. Include [WHY:] after every claim."
 
-    # 1st: Groq
+    # 1. Groq
+    groq_client = _get_groq_client()
     if groq_client:
         try:
             resp = groq_client.chat.completions.create(
@@ -51,7 +57,8 @@ def generate_trade_plan(data: dict) -> str:
         except Exception:
             pass
 
-    # 2nd: Gemini (reliable free fallback)
+    # 2. Gemini
+    gemini_model = _get_gemini_model()
     if gemini_model:
         try:
             full_prompt = JUDGE + "\n\n" + user_prompt
@@ -64,7 +71,7 @@ def generate_trade_plan(data: dict) -> str:
         except Exception:
             pass
 
-    # 3rd: OpenAI (if key set)
+    # 3. OpenAI (optional)
     if OPENAI_API_KEY:
         try:
             from openai import OpenAI
@@ -79,7 +86,7 @@ def generate_trade_plan(data: dict) -> str:
         except Exception:
             pass
 
-    # Final fallback: rule-based
+    # 4. Rule‑based fallback (always works)
     return _rule_based(data)
 
 def _rule_based(data: dict) -> str:
@@ -95,17 +102,15 @@ def _rule_based(data: dict) -> str:
         fg_val = fg.get("value", 50)
 
         if trend == "bullish" and rsi < 70 and fg_val < 40:
-            dir, entry = "LONG", p
-            stop = min(support, p - 1.5 * atr)
+            dir, entry, stop = "LONG", p, min(support, p - 1.5 * atr)
             tp1, tp2 = p + atr * 2, p + atr * 4
         elif trend == "bearish" and rsi > 30 and fg_val > 60:
-            dir, entry = "SHORT", p
-            stop = max(resistance, p + 1.5 * atr)
+            dir, entry, stop = "SHORT", p, max(resistance, p + 1.5 * atr)
             tp1, tp2 = p - atr * 2, p - atr * 4
         else:
             dir, entry, stop, tp1, tp2 = "NO TRADE", 0, 0, 0, 0
 
-        return f"""ASSET: {data.get('symbol', 'Unknown')}
+        return f"""ASSET: {data.get('symbol','Unknown')}
 FINAL DECISION: {dir}
 CONFIDENCE: Medium (rule-based fallback)
 
