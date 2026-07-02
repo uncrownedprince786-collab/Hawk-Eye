@@ -1,4 +1,4 @@
-﻿const API = '';
+const API = '';
 let coinPage = 1;
 
 function formatPrice(p) {
@@ -42,7 +42,7 @@ if (window.location.pathname === '/' || window.location.pathname === '') {
 
     async function loadCoins(page = 1) {
         try {
-            const resp = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=${page}&sparkline=true&price_change_percentage=1h,24h,7d`);
+            const resp = await fetch(API + '/api/coins?page=' + page + '&per_page=50');
             const coins = await resp.json();
             const tbody = document.getElementById('coinTableBody');
             if (page === 1) tbody.innerHTML = '';
@@ -89,24 +89,20 @@ if (window.location.pathname === '/' || window.location.pathname === '') {
     }
 
     async function loadStocks() {
-        const stocks = ['AAPL','MSFT','GOOGL','AMZN','NVDA','TSLA','META','JPM','V','JNJ','WMT','PG','MA','UNH','HD','BAC','DIS','NFLX','ADBE','CRM'];
+        const symbols = ['AAPL','MSFT','GOOGL','AMZN','NVDA','TSLA','META','JPM','V','JNJ','WMT','PG','MA','UNH','HD','BAC','DIS','NFLX','ADBE','CRM'];
         document.getElementById('stocksBody').innerHTML = '<tr><td colspan="7" class="loading-row">Loading stocks...</td></tr>';
-        try {
-            const symbols = stocks.join(',');
-            const resp = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=&vs_currencies=usd`);
-            let html = '';
-            for (const sym of stocks) {
-                try {
-                    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=d92fcnpr01qraam0nuigd92fcnpr01qraam0nuj0`);
-                    const d = await r.json();
-                    if (d.c) {
-                        const change = d.dp || 0;
-                        html += `<tr><td>${sym}</td><td><span class="coin-name" onclick="window.location.href='/coin?symbol=${sym}'">${sym}</span></td><td>$${d.c.toFixed(2)}</td><td>${formatChange(change)}</td><td>--</td><td>--</td><td>--</td></tr>`;
-                    }
-                } catch(e) {}
-            }
-            document.getElementById('stocksBody').innerHTML = html || '<tr><td colspan="7">Stock data unavailable.</td></tr>';
-        } catch(e) { document.getElementById('stocksBody').innerHTML = '<tr><td colspan="7">Failed to load stocks.</td></tr>'; }
+        let html = '';
+        for (const sym of symbols) {
+            try {
+                const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=d92fcnpr01qraam0nuigd92fcnpr01qraam0nuj0`);
+                const d = await r.json();
+                if (d.c) {
+                    const change = d.dp || 0;
+                    html += `<tr><td>${sym}</td><td><span class="coin-name" onclick="window.location.href='/coin?symbol=${sym}'">${sym}</span></td><td>$${d.c.toFixed(2)}</td><td>${formatChange(change)}</td><td>--</td><td>--</td><td>--</td></tr>`;
+                }
+            } catch(e) {}
+        }
+        document.getElementById('stocksBody').innerHTML = html || '<tr><td colspan="7">Stock data unavailable.</td></tr>';
     }
 
     async function loadNews() {
