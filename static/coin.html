@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hawk Eye - Coin Analysis</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a href="/" class="logo">HAWK EYE</a>
+            <nav class="nav">
+                <a href="/" class="nav-link active">Coins</a>
+                <a href="/" class="nav-link">Exchanges</a>
+                <a href="/" class="nav-link">Learn</a>
+            </nav>
+            <div class="header-right">
+                <input type="text" class="search-input" id="coinSearch" placeholder="Search coin or stock..." autocomplete="off">
+            </div>
+        </div>
+    </header>
+
+    <main class="coin-page" id="coinPage">
+        <div class="coin-header">
+            <h1 id="coinName">--</h1>
+            <div class="coin-price">
+                <span class="current-price" id="coinPrice">--</span>
+                <span class="price-change" id="coinChange">--</span>
+            </div>
+        </div>
+
+        <div class="coin-grid">
+            <div class="grid-left">
+                <div class="panel chart-panel">
+                    <div class="panel-header">Price Chart</div>
+                    <canvas id="priceChart"></canvas>
+                    <div class="timeframe-buttons">
+                        <button onclick="loadChart('1h')">1H</button>
+                        <button onclick="loadChart('4h')">4H</button>
+                        <button onclick="loadChart('1d')">1D</button>
+                        <button onclick="loadChart('1w')">1W</button>
+                    </div>
+                </div>
+
+                <div class="panel trade-panel">
+                    <div class="panel-header">Hawk Eye Trade Plan</div>
+                    <div id="tradePlan">
+                        <p class="placeholder">Click "Generate Trade Plan" to get AI-powered analysis with entry, exit, and educational reasoning.</p>
+                    </div>
+                    <button class="btn-primary" id="generateBtn" onclick="generateTradePlan()">GENERATE TRADE PLAN</button>
+                </div>
+            </div>
+
+            <div class="grid-right">
+                <div class="panel stats-panel">
+                    <div class="panel-header">Price Statistics</div>
+                    <div id="priceStats">
+                        <div class="stat-row"><span>24h High</span><span id="statHigh">--</span></div>
+                        <div class="stat-row"><span>24h Low</span><span id="statLow">--</span></div>
+                        <div class="stat-row"><span>All-Time High</span><span id="statATH">--</span></div>
+                        <div class="stat-row"><span>All-Time Low</span><span id="statATL">--</span></div>
+                        <div class="stat-row"><span>Market Cap</span><span id="statMCap">--</span></div>
+                        <div class="stat-row"><span>Volume 24h</span><span id="statVol">--</span></div>
+                        <div class="stat-row"><span>Circulating Supply</span><span id="statSupply">--</span></div>
+                        <div class="stat-row"><span>Max Supply</span><span id="statMaxSupply">--</span></div>
+                    </div>
+                </div>
+
+                <div class="panel news-panel">
+                    <div class="panel-header">Latest News</div>
+                    <div id="newsFeed">
+                        <p class="placeholder">Loading news...</p>
+                    </div>
+                </div>
+
+                <div class="panel sentiment-panel">
+                    <div class="panel-header">Market Sentiment</div>
+                    <div id="sentimentData">
+                        <p class="placeholder">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="search-dropdown hidden" id="searchDropdown"></div>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

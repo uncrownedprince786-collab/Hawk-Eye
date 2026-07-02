@@ -1,0 +1,183 @@
+﻿:root {
+    --bg: #0a0e0f;
+    --panel-bg: #0f1315;
+    --border: #1e2729;
+    --text: #b0b8b4;
+    --text-dim: #5a6662;
+    --accent: #3da5d9;
+    --green: #4caf50;
+    --red: #e53935;
+    --yellow: #f5a623;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Consolas', 'Courier New', monospace;
+    height: 100vh;
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.terminal {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.top-bar {
+    background: #0c1214;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.title {
+    color: var(--accent);
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 3px;
+}
+
+.subtitle {
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 2px;
+    flex: 1;
+}
+
+.status {
+    font-size: 11px;
+    padding: 4px 10px;
+    background: var(--border);
+    color: var(--text-dim);
+}
+
+.main-grid {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.col-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+}
+
+.col-right {
+    width: 340px;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel-bg);
+}
+
+.panel-title {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+}
+
+.chart-panel { flex: 1; }
+.chart-panel canvas { width: 100%; height: 100%; }
+
+.trade-panel { flex: 1; overflow-y: auto; }
+.trade-panel pre {
+    white-space: pre-wrap;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+}
+
+.order-panel { height: 50%; overflow-y: auto; }
+.news-panel { flex: 1; overflow-y: auto; }
+
+.command-bar {
+    background: #0c1214;
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    gap: 10px;
+}
+
+#symbolInput {
+    flex: 1;
+    background: #0f1315;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 10px 14px;
+    font-family: inherit;
+    font-size: 15px;
+    letter-spacing: 1px;
+    outline: none;
+}
+
+#symbolInput:focus {
+    border-color: var(--accent);
+}
+
+button {
+    background: #0f1315;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 2px;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+button:hover {
+    background: #161d20;
+    border-color: var(--accent);
+}
+
+#orderBookContent {
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+#spoofAlert {
+    color: var(--red);
+    font-size: 11px;
+    margin-top: 6px;
+}
+
+#newsFeed {
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.news-item {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.news-headline {
+    color: var(--accent);
+    font-weight: bold;
+}
+
+.news-summary {
+    color: var(--text-dim);
+    margin-top: 3px;
+}

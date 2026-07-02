@@ -1,0 +1,76 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hawk Eye - Cryptocurrency Prices & Market Data</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a href="/" class="logo">HAWK EYE</a>
+            <nav class="nav">
+                <a href="/" class="nav-link active">Coins</a>
+                <a href="/" class="nav-link">Exchanges</a>
+                <a href="/" class="nav-link">Learn</a>
+            </nav>
+            <div class="header-right">
+                <input type="text" class="search-input" id="globalSearch" placeholder="Search coin or stock..." autocomplete="off">
+                <div class="market-brief">
+                    <span id="btcDominance">BTC: --</span>
+                    <span id="totalMarketCap">MCap: --</span>
+                    <span id="fearGreed">Fear: --</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-label">Total Market Cap</span>
+                <span class="stat-value" id="totalMcap">--</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">24h Volume</span>
+                <span class="stat-value" id="totalVolume">--</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">BTC Dominance</span>
+                <span class="stat-value" id="btcDom">--</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Fear & Greed</span>
+                <span class="stat-value" id="fearGreedValue">--</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="coin-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>1h</th>
+                        <th>24h</th>
+                        <th>7d</th>
+                        <th>24h Volume</th>
+                        <th>Market Cap</th>
+                        <th>Last 7 Days</th>
+                        <th>Trade</th>
+                    </tr>
+                </thead>
+                <tbody id="coinTableBody">
+                    <tr><td colspan="10" class="loading-row">Loading market data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div class="search-dropdown hidden" id="searchDropdown"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
