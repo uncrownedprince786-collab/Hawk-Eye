@@ -97,8 +97,8 @@ async def ws_endpoint(ws: WebSocket, symbol: str):
     except Exception: manager.disconnect(ws)
 
 @app.get("/api/coins")
-async def coins_list():
-    data = await fetch_coins_list(50)
+async def coins_list(page: int = 1, per_page: int = 50):
+    data = await fetch_coins_list(per_page, page)
     return JSONResponse(data)
 
 @app.post("/analyze")
