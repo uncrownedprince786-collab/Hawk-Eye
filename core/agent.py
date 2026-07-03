@@ -4,6 +4,7 @@ from .config import GROQ_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY
 import json
 import numpy as np
 import re
+from datetime import datetime, timezone
 
 # ----- lazy clients (no crash if keys missing) -----
 _groq_client = None
@@ -22,7 +23,7 @@ def _get_gemini():
         _gemini_model = genai.GenerativeModel('gemini-1.5-flash')
     return _gemini_model
 
-# ----- Prompt for AI -----
+# ----- Prompt for AI (if used) -----
 JUDGE = """You are World's No.1 Trader. Analyze ALL data. Provide a trade plan with precise entry, stop loss, and take profit levels. Explain WHY for each level. Include candlestick pattern analysis and news impact. Format: plain text, no markdown. Always include:
 - Direction (LONG/SHORT/NO TRADE)
 - Confidence 0-100
@@ -32,20 +33,21 @@ JUDGE = """You are World's No.1 Trader. Analyze ALL data. Provide a trade plan w
 - Risk note
 - Invalidation condition"""
 
-# ----- Rule-based engine (fallback) -----
+# =====================================================================
+#  IMPROVED RULE‑BASED ENGINE (production‑grade)
+# =====================================================================
 def _rule_based(data: dict) -> str:
     try:
         symbol = data.get("symbol", "???")
-        price = data.get("price_data", {}).get("price", 0)
-        tech = data.get("technicals_1d", {}) or data.get("technicals", {})
+        price = data.get("price_data", {}).get("price", 0) or 0
+        tech = data.get("technicals", {}) or data.get("technicals_1d", {})
         fg = data.get("fear_greed", {})
         news = data.get("news", [])
         cg = data.get("coingecko", {})
-        # Multi-timeframe trend
-        mtf = data.get("multi_timeframe", {})
-        trend_4h = mtf.get("4H", {}).get("trend", "neutral") if mtf else "neutral"
-        trend_1h = mtf.get("1H", {}).get("trend", "neutral") if mtf else "neutral"
+        timestamp = data.get("timestamp_utc", datetime.now(timezone.utc).isoformat())
+        order_book = data.get("order_book", {})
 
+        # Basic indicators
         trend = tech.get("trend", "neutral")
         rsi = tech.get("rsi_14", 50)
         macd_dir = tech.get("macd_direction", "neutral")
@@ -61,12 +63,13 @@ def _rule_based(data: dict) -> str:
         ema21 = tech.get("ema_21", price)
         obv = tech.get("obv_trend", "neutral")
         fg_val = fg.get("value", 50)
-        spoof = data.get("order_book", {}).get("spoof_alert", "")
+        spoof = order_book.get("spoof_alert", "")
 
-        # Candlestick patterns from recent_candles (30 candles)
+        # ----- Candlestick Patterns (extended) -----
         candles = tech.get("recent_candles", [])
         pattern_score = 0
         pattern_desc = []
+
         if len(candles) >= 3:
             last = candles[-1]
             prev = candles[-2]
@@ -75,27 +78,43 @@ def _rule_based(data: dict) -> str:
             total_range = last["high"] - last["low"]
             if total_range > 0 and body < total_range * 0.1:
                 pattern_desc.append("Doji")
-            # Hammer
-            lower_wick = last["open"] - last["low"] if last["close"] > last["open"] else last["close"] - last["low"]
-            upper_wick = last["high"] - last["close"] if last["close"] > last["open"] else last["high"] - last["open"]
+            # Hammer / Hanging Man
+            lower_wick = (last["open"] if last["close"] > last["open"] else last["close"]) - last["low"]
+            upper_wick = last["high"] - (last["close"] if last["close"] > last["open"] else last["open"])
             if body > 0 and lower_wick > 2*body and upper_wick < body:
                 pattern_desc.append("Hammer (bullish)")
                 pattern_score += 2
-            # Shooting star
             if body > 0 and upper_wick > 2*body and lower_wick < body:
                 pattern_desc.append("Shooting Star (bearish)")
                 pattern_score -= 2
-            # Engulfing bullish
+            # Engulfing
             if (prev["close"] < prev["open"] and last["close"] > last["open"] and
                 last["open"] < prev["close"] and last["close"] > prev["open"]):
                 pattern_desc.append("Bullish Engulfing")
                 pattern_score += 3
-            # Engulfing bearish
             if (prev["close"] > prev["open"] and last["close"] < last["open"] and
                 last["open"] > prev["close"] and last["close"] < prev["open"]):
                 pattern_desc.append("Bearish Engulfing")
                 pattern_score -= 3
-        # Three white soldiers / black crows over last 3 candles
+            # Morning / Evening Star (3 candles)
+            if len(candles) >= 3:
+                c3, c2, c1 = candles[-3], candles[-2], candles[-1]
+                # Morning Star
+                if (c3["close"] < c3["open"] and
+                    abs(c2["close"]-c2["open"]) < (c2["high"]-c2["low"])*0.3 and
+                    c1["close"] > c1["open"] and
+                    c1["close"] > (c3["open"] + c3["close"])/2):
+                    pattern_desc.append("Morning Star (bullish reversal)")
+                    pattern_score += 4
+                # Evening Star
+                if (c3["close"] > c3["open"] and
+                    abs(c2["close"]-c2["open"]) < (c2["high"]-c2["low"])*0.3 and
+                    c1["close"] < c1["open"] and
+                    c1["close"] < (c3["open"] + c3["close"])/2):
+                    pattern_desc.append("Evening Star (bearish reversal)")
+                    pattern_score -= 4
+
+        # Three White Soldiers / Black Crows
         if len(candles) >= 3:
             c3, c2, c1 = candles[-3], candles[-2], candles[-1]
             if all(c["close"] > c["open"] for c in [c3,c2,c1]) and c1["close"] > c2["close"] > c3["close"]:
@@ -105,7 +124,49 @@ def _rule_based(data: dict) -> str:
                 pattern_desc.append("Three Black Crows (strong bearish)")
                 pattern_score -= 4
 
-        # News keyword sentiment
+        # ----- ICT / SMC concepts (simplified) -----
+        # Fair Value Gap (FVG) detection on 3 candles
+        if len(candles) >= 3:
+            c1, c2, c3 = candles[-3], candles[-2], candles[-1]
+            # Bullish FVG: c1 high < c3 low
+            if c1["high"] < c3["low"]:
+                pattern_desc.append("Bullish FVG (imbalance)")
+                pattern_score += 2
+            # Bearish FVG: c1 low > c3 high
+            if c1["low"] > c3["high"]:
+                pattern_desc.append("Bearish FVG (imbalance)")
+                pattern_score -= 2
+
+        # Liquidity sweep (stop hunt) – simple detection via wick beyond recent high/low
+        if len(candles) >= 5:
+            recent_high = max(c["high"] for c in candles[-5:-1])
+            recent_low = min(c["low"] for c in candles[-5:-1])
+            last_c = candles[-1]
+            if last_c["high"] > recent_high and last_c["close"] < recent_high:
+                pattern_desc.append("Liquidity sweep above (stop hunt)")
+                pattern_score -= 2
+            if last_c["low"] < recent_low and last_c["close"] > recent_low:
+                pattern_desc.append("Liquidity sweep below (stop hunt)")
+                pattern_score += 2
+
+        # ----- Volume Profile / Order Flow insights -----
+        vol_profile_note = ""
+        poc = tech.get("poc")
+        if poc:
+            if price > poc:
+                vol_profile_note = f"Price above POC {poc:.2f} (bullish context)"
+            else:
+                vol_profile_note = f"Price below POC {poc:.2f} (bearish context)"
+
+        # Bid/Ask imbalance
+        imbalance = order_book.get("bid_ask_imbalance", {})
+        bias_note = imbalance.get("bias", "balanced")
+        if bias_note == "buyers_dominant":
+            pattern_score += 1
+        elif bias_note == "sellers_dominant":
+            pattern_score -= 1
+
+        # ----- News sentiment -----
         news_sent = 0
         news_highlights = []
         pos_words = ["surge","rally","bullish","gain","rise","jump","soar","breakout","upgrade","buy","adoption","partnership"]
@@ -119,7 +180,7 @@ def _rule_based(data: dict) -> str:
                 news_sent += score
                 news_highlights.append(n.get("headline","")[:80])
 
-        # Scoring
+        # ================= SCORING ENGINE =================
         reasons = []
         score = 0
 
@@ -128,14 +189,6 @@ def _rule_based(data: dict) -> str:
             score += 2; reasons.append("Primary trend bullish")
         elif trend == "bearish":
             score -= 2; reasons.append("Primary trend bearish")
-
-        # Multi-timeframe alignment
-        if trend == trend_4h == "bullish":
-            score += 2; reasons.append("1D/4H alignment bullish")
-        elif trend == trend_4h == "bearish":
-            score -= 2; reasons.append("1D/4H alignment bearish")
-        elif trend != trend_4h:
-            reasons.append("Multi-timeframe conflict, caution")
 
         # RSI
         if rsi < 30:
@@ -157,9 +210,9 @@ def _rule_based(data: dict) -> str:
 
         # Bollinger Bands
         if price < bb_lower:
-            score += 1.5; reasons.append("Price below lower Bollinger Band")
+            score += 1.5; reasons.append("Price below lower BB")
         elif price > bb_upper:
-            score -= 1.5; reasons.append("Price above upper Bollinger Band")
+            score -= 1.5; reasons.append("Price above upper BB")
 
         # VWAP
         if price > vwap:
@@ -203,7 +256,7 @@ def _rule_based(data: dict) -> str:
         if spoof and "SPOOFING" in spoof.upper():
             score -= 3; reasons.append("Order book spoofing detected!")
 
-        # Final decision
+        # ================= DECISION =================
         if score >= 4:
             direction, conf = "LONG", min(90, 50 + int(score * 4))
         elif score <= -4:
@@ -211,7 +264,16 @@ def _rule_based(data: dict) -> str:
         else:
             direction, conf = "NO TRADE", 30
 
-        # Trade parameters
+        # Extreme Fear/Greed override
+        if direction == "NO TRADE":
+            if fg_val <= 15 and trend != "bearish":
+                direction, conf = "LONG", 45
+                reasons.append("Extreme Fear override – small long")
+            elif fg_val >= 85 and trend != "bullish":
+                direction, conf = "SHORT", 45
+                reasons.append("Extreme Greed override – small short")
+
+        # ================= TRADE PARAMETERS =================
         if direction == "LONG":
             entry = round(price, 2)
             stop = round(min(support, price - 1.5*atr), 2)
@@ -233,49 +295,80 @@ def _rule_based(data: dict) -> str:
             rr = "N/A"
             pos_size = "0%"
 
+        # ================= DAILY OUTLOOK =================
+        daily_high = round(price + atr, 2)
+        daily_low = round(price - atr, 2)
+        daily_range = round(2*atr, 2)
+        if trend == "bullish":
+            bias = "Bullish"
+        elif trend == "bearish":
+            bias = "Bearish"
+        else:
+            bias = "Neutral"
+
+        # ================= SETUP QUALITY SCORE =================
+        # Count of active bullish/bearish signals
+        bullish_signals = sum(1 for r in reasons if any(w in r.lower() for w in ["bullish","oversold","rising","contrarian buy","positive","scarce"]))
+        bearish_signals = sum(1 for r in reasons if any(w in r.lower() for w in ["bearish","overbought","falling","contrarian sell","negative","abundant"]))
+        total_signals = bullish_signals + bearish_signals
+        if total_signals > 0:
+            quality = min(100, int((bullish_signals if direction=="LONG" else bearish_signals if direction=="SHORT" else 0) / total_signals * 100))
+        else:
+            quality = 50
+
+        # ================= OUTPUT =================
         return f"""ASSET: {symbol}
+GENERATED: {timestamp}
+STATUS: ACTIVE
+VALID UNTIL: Next 6 hours or until SL/TP hit
+
 FINAL DECISION: {direction}
-CONFIDENCE: {conf}/100 (Self-contained engine)
-REASONING: {'; '.join(reasons[:6])}
+CONFIDENCE: {conf}/100
+SETUP QUALITY SCORE: {quality}/100
 
---- KEY LEVELS EXPLAINED ---
-Support: ${support} [WHY: 20-period low, volume cluster]
-Resistance: ${resistance} [WHY: 20-period high]
-VWAP: ${vwap:.2f} [WHY: institutional reference price]
-ATR (14): ${atr:.2f} [WHY: average daily range]
+CURRENT PRICE: ${price:.2f}
+SUPPORT: ${support:.2f} ({round((price-support)/price*100,1)}% below)
+RESISTANCE: ${resistance:.2f} ({round((resistance-price)/price*100,1)}% above)
+VWAP: {vwap:.2f}
+ATR: {atr:.2f}
 
---- CANDLESTICK PATTERNS ---
-{', '.join(pattern_desc) if pattern_desc else 'No strong pattern detected'}
+--- DAILY OUTLOOK ---
+Predicted High: ${daily_high:.2f}
+Predicted Low: ${daily_low:.2f}
+Expected Range: ${daily_range:.2f}
+Bias: {bias}
 
---- NEWS SENTIMENT ---
-{' ; '.join(news_highlights[:3]) if news_highlights else 'No significant news impact'}
-
---- SPOT TRADE ---
-Direction: {direction}
-Entry Zone: ${entry}
-Stop Loss: ${stop} [WHY: below support/ATR]
-Take Profit 1: ${tp1}
-Take Profit 2: ${tp2}
-Take Profit 3: ${tp3}
+--- KEY LEVELS ---
+Support: ${support:.2f}
+Resistance: ${resistance:.2f}
+Stop Loss: ${stop:.2f}
+Take Profit 1: ${tp1:.2f}
+Take Profit 2: ${tp2:.2f}
+Take Profit 3: ${tp3:.2f}
 Risk/Reward: {rr}
-Position Size: {pos_size}
 
---- FUTURES TRADE ---
-Direction: {direction}
-Leverage: 2x (max)
-Entry: ${entry}
-Stop Loss: ${stop}
-Take Profit 1: ${tp1}
-Take Profit 2: ${tp2}
+--- REASONING ---
+{' | '.join(reasons[:8])}
+
+--- CANDLESTICK / ORDER FLOW ---
+{', '.join(pattern_desc) if pattern_desc else 'No strong patterns'}
+{vol_profile_note}
+Order Book Bias: {bias_note}
+
+--- TRADE MANAGEMENT ---
+Entry Trigger: {f'Wait for price in ${entry} zone with bullish confirmation' if direction == 'LONG' else f'Wait for price in ${entry} zone with bearish confirmation' if direction == 'SHORT' else 'No action until clearer signals'}
+Invalidation: If closes beyond ${stop:.2f}
+Best Session: London + New York overlap (13:00-17:00 UTC)
 
 --- RISK NOTE ---
-Self-contained analysis based on technical, candlestick patterns, and news keywords. Always use proper risk management.
+Risk 1-{pos_size} of capital. Always use a stop loss. Past performance does not guarantee future results.
+"""
+    except:
+        return "Analysis failed. Please refresh."
 
---- INVALIDATION ---
-Trade invalid if price closes beyond ${stop}."""
-    except Exception as e:
-        return f"Trade plan generation failed: {str(e)}"
-
+# =====================================================================
+#  MAIN TRADE PLAN GENERATOR (tries AI first, falls back to rule engine)
+# =====================================================================
 def generate_trade_plan(data: dict) -> str:
     user_prompt = f"Data:\n{json.dumps(data, default=str)}\n\nDeliver trade plan."
 
@@ -300,5 +393,5 @@ def generate_trade_plan(data: dict) -> str:
             if resp.text: return resp.text.strip()
         except: pass
 
-    # 3) Fallback to rule-based engine
+    # 3) Fallback to self-contained engine
     return _rule_based(data)
