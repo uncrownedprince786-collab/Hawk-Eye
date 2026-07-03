@@ -1,100 +1,108 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hawk Eye - Crypto and Stock Market</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config={darkMode:'class'}</script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-    .loader { border-top-color: #f0b90b; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .coin-icon { width: 24px; height: 24px; vertical-align: middle; margin-right: 6px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Hawk Eye - Crypto & Stock Terminal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  body{font-family:'Inter',sans-serif;background:#0b0e11;color:#eaecef}
+  .loader{border-top-color:#f0b90b;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .coin-icon{width:28px;height:28px;border-radius:50%}
+  .sparkline{width:120px;height:40px}
+  ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#1e2329}::-webkit-scrollbar-thumb{background:#2b3139;border-radius:3px}
+</style>
 </head>
-<body class="bg-gray-950 text-gray-200">
-  <header class="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 flex items-center h-14 gap-6">
-      <a href="/" class="text-xl font-bold text-yellow-500 tracking-wider">HAWK EYE</a>
-      <nav class="flex gap-4 text-sm">
-        <a href="/" class="text-yellow-500 border-b-2 border-yellow-500 pb-1">Coins</a>
-        <a href="/exchanges" class="text-gray-400 hover:text-gray-200">Exchanges</a>
-        <a href="/learn" class="text-gray-400 hover:text-gray-200">Learn</a>
-      </nav>
-      <input id="globalSearch" type="text" placeholder="Search coins or stocks" autocomplete="off" class="ml-auto bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm w-64 focus:outline-none focus:border-yellow-500">
-      <button id="themeToggle" class="text-lg" title="Toggle theme">T</button>
+<body class="bg-[#0b0e11] text-[#eaecef]">
+<header class="bg-[#1e2329] border-b border-[#2b3139] sticky top-0 z-50">
+  <div class="max-w-[1440px] mx-auto px-4 flex items-center h-14 gap-6">
+    <a href="/" class="text-xl font-bold text-[#f0b90b] tracking-wide">HAWK EYE</a>
+    <nav class="flex gap-1">
+      <a href="/" class="text-[#f0b90b] px-3 py-2 text-sm font-medium border-b-2 border-[#f0b90b]">Markets</a>
+      <a href="/exchanges" class="text-[#848e9c] hover:text-white px-3 py-2 text-sm">Exchanges</a>
+      <a href="/learn" class="text-[#848e9c] hover:text-white px-3 py-2 text-sm">Learn</a>
+    </nav>
+    <div class="flex-1 max-w-md mx-auto">
+      <input id="globalSearch" type="text" placeholder="Search 10,000+ coins and stocks..." autocomplete="off"
+        class="w-full bg-[#0b0e11] border border-[#2b3139] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#f0b90b] placeholder-gray-500">
     </div>
-  </header>
-  <div class="max-w-7xl mx-auto px-4 py-4">
-    <div class="flex flex-wrap gap-6 text-sm mb-4">
-      <div><span class="text-gray-500">Total Market Cap</span><br><span id="totalMcap" class="font-semibold">--</span></div>
-      <div><span class="text-gray-500">24h Volume</span><br><span id="totalVolume" class="font-semibold">--</span></div>
-      <div><span class="text-gray-500">BTC Dominance</span><br><span id="btcDom" class="font-semibold">--</span></div>
-      <div><span class="text-gray-500">Fear and Greed</span><br><span id="fearGreedVal" class="font-semibold">--</span></div>
-    </div>
-    <div class="flex gap-4 mb-0">
-      <button class="tab active px-4 py-2 rounded-t-lg bg-gray-800 text-yellow-500 border border-b-0 border-gray-700" onclick="showSection('crypto')">Cryptocurrencies</button>
-      <button class="tab px-4 py-2 rounded-t-lg bg-gray-900 text-gray-400 border border-gray-700 hover:text-gray-200" onclick="showSection('gainers')">Top Gainers</button>
-      <button class="tab px-4 py-2 rounded-t-lg bg-gray-900 text-gray-400 border border-gray-700 hover:text-gray-200" onclick="showSection('losers')">Top Losers</button>
-      <button class="tab px-4 py-2 rounded-t-lg bg-gray-900 text-gray-400 border border-gray-700 hover:text-gray-200" onclick="showSection('stocks')">Stocks</button>
-      <button class="tab px-4 py-2 rounded-t-lg bg-gray-900 text-gray-400 border border-gray-700 hover:text-gray-200" onclick="showSection('news')">News</button>
+    <div class="flex items-center gap-4 text-xs text-[#848e9c]">
+      <span id="btcDom">BTC --</span>
+      <span id="fearGreedVal">Fear --</span>
     </div>
   </div>
-  <main class="max-w-7xl mx-auto px-4 flex gap-6">
-    <div class="flex-1 min-w-0">
-      <section id="cryptoSection" class="section">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="text-gray-400 border-b border-gray-800">
-              <tr><th class="text-left py-2 px-2">#</th><th class="text-left py-2 px-2">Name</th><th class="text-right py-2 px-2">Price</th><th class="text-right py-2 px-2">1h</th><th class="text-right py-2 px-2">24h</th><th class="text-right py-2 px-2">7d</th><th class="text-right py-2 px-2">24h Vol</th><th class="text-right py-2 px-2">Market Cap</th><th class="text-right py-2 px-2">7d Chart</th><th></th></tr>
-            </thead>
-            <tbody id="coinTableBody"></tbody>
-          </table>
-        </div>
-        <button id="loadMoreBtn" onclick="loadMoreCoins()" class="mt-4 mx-auto block bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded px-6 py-2 text-sm">Load More</button>
-      </section>
-      <section id="gainersSection" class="section hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="text-gray-400 border-b border-gray-800">
-              <tr><th class="text-left py-2 px-2">#</th><th class="text-left py-2 px-2">Name</th><th class="text-right py-2 px-2">Price</th><th class="text-right py-2 px-2">24h</th><th class="text-right py-2 px-2">Volume</th><th class="text-right py-2 px-2">Market Cap</th><th></th></tr>
-            </thead>
-            <tbody id="gainersBody"></tbody>
-          </table>
-        </div>
-      </section>
-      <section id="losersSection" class="section hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="text-gray-400 border-b border-gray-800">
-              <tr><th class="text-left py-2 px-2">#</th><th class="text-left py-2 px-2">Name</th><th class="text-right py-2 px-2">Price</th><th class="text-right py-2 px-2">24h</th><th class="text-right py-2 px-2">Volume</th><th class="text-right py-2 px-2">Market Cap</th><th></th></tr>
-            </thead>
-            <tbody id="losersBody"></tbody>
-          </table>
-        </div>
-      </section>
-      <section id="stocksSection" class="section hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="text-gray-400 border-b border-gray-800">
-              <tr><th class="text-left py-2 px-2">Sym</th><th class="text-left py-2 px-2">Name</th><th class="text-right py-2 px-2">Price</th><th class="text-right py-2 px-2">Chg</th><th class="text-right py-2 px-2">Vol</th><th class="text-right py-2 px-2">MCap</th><th class="text-right py-2 px-2">P/E</th><th></th></tr>
-            </thead>
-            <tbody id="stocksBody"></tbody>
-          </table>
-        </div>
-      </section>
-      <section id="newsSection" class="section hidden">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="newsGrid"></div>
-      </section>
+</header>
+
+<div class="max-w-[1440px] mx-auto px-4 py-3">
+  <div class="flex gap-6 text-xs mb-4">
+    <div><span class="text-[#848e9c]">Market Cap</span><br><span id="totalMcap" class="text-sm font-semibold text-white">--</span></div>
+    <div><span class="text-[#848e9c]">24h Volume</span><br><span id="totalVolume" class="text-sm font-semibold text-white">--</span></div>
+    <div><span class="text-[#848e9c]">BTC</span><br><span id="btcPrice" class="text-sm font-semibold text-white">--</span></div>
+    <div><span class="text-[#848e9c]">ETH</span><br><span id="ethPrice" class="text-sm font-semibold text-white">--</span></div>
+  </div>
+
+  <div class="flex gap-2 mb-0 border-b border-[#2b3139]">
+    <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-t-lg bg-[#1e2329] text-[#f0b90b] border border-b-0 border-[#2b3139]" data-tab="crypto">Crypto</button>
+    <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-t-lg text-[#848e9c] hover:text-white" data-tab="gainers">Top Gainers</button>
+    <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-t-lg text-[#848e9c] hover:text-white" data-tab="losers">Top Losers</button>
+    <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-t-lg text-[#848e9c] hover:text-white" data-tab="stocks">US Stocks</button>
+    <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-t-lg text-[#848e9c] hover:text-white" data-tab="psx">PSX</button>
+  </div>
+</div>
+
+<main class="max-w-[1440px] mx-auto px-4 flex gap-5">
+  <div class="flex-1 min-w-0">
+    <section id="tab-crypto" class="tab-content">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-[#848e9c] text-xs border-b border-[#2b3139]">
+              <th class="text-left py-3 px-3 font-medium">#</th>
+              <th class="text-left py-3 px-3 font-medium">Name</th>
+              <th class="text-right py-3 px-3 font-medium">Price</th>
+              <th class="text-right py-3 px-3 font-medium">1h</th>
+              <th class="text-right py-3 px-3 font-medium">24h</th>
+              <th class="text-right py-3 px-3 font-medium">7d</th>
+              <th class="text-right py-3 px-3 font-medium">Volume</th>
+              <th class="text-right py-3 px-3 font-medium">Market Cap</th>
+              <th class="text-right py-3 px-3 font-medium">Chart</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="coinTableBody"></tbody>
+        </table>
+      </div>
+      <button onclick="loadMoreCoins()" class="mt-4 mx-auto block bg-[#1e2329] hover:bg-[#2b3139] border border-[#2b3139] rounded-lg px-8 py-2.5 text-sm text-[#848e9c] hover:text-white transition">Load More</button>
+    </section>
+    <section id="tab-gainers" class="tab-content hidden">
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-[#848e9c] text-xs border-b border-[#2b3139]"><th class="text-left py-3 px-3">#</th><th class="text-left py-3 px-3">Name</th><th class="text-right py-3 px-3">Price</th><th class="text-right py-3 px-3">24h</th><th class="text-right py-3 px-3">Volume</th><th class="text-right py-3 px-3">Market Cap</th><th></th></tr></thead><tbody id="gainersBody"></tbody></table></div>
+    </section>
+    <section id="tab-losers" class="tab-content hidden">
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-[#848e9c] text-xs border-b border-[#2b3139]"><th class="text-left py-3 px-3">#</th><th class="text-left py-3 px-3">Name</th><th class="text-right py-3 px-3">Price</th><th class="text-right py-3 px-3">24h</th><th class="text-right py-3 px-3">Volume</th><th class="text-right py-3 px-3">Market Cap</th><th></th></tr></thead><tbody id="losersBody"></tbody></table></div>
+    </section>
+    <section id="tab-stocks" class="tab-content hidden">
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-[#848e9c] text-xs border-b border-[#2b3139]"><th class="text-left py-3 px-3">Sym</th><th class="text-left py-3 px-3">Name</th><th class="text-right py-3 px-3">Price</th><th class="text-right py-3 px-3">Change</th><th class="text-right py-3 px-3">High</th><th class="text-right py-3 px-3">Low</th><th></th></tr></thead><tbody id="stocksBody"></tbody></table></div>
+    </section>
+    <section id="tab-psx" class="tab-content hidden">
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-[#848e9c] text-xs border-b border-[#2b3139]"><th class="text-left py-3 px-3">Sym</th><th class="text-left py-3 px-3">Name</th><th class="text-right py-3 px-3">Price</th><th class="text-right py-3 px-3">Change</th><th class="text-right py-3 px-3">Volume</th><th></th></tr></thead><tbody id="psxBody"></tbody></table></div>
+    </section>
+  </div>
+
+  <aside class="hidden xl:block w-[340px] flex-shrink-0">
+    <div class="bg-[#1e2329] rounded-xl border border-[#2b3139] p-4 sticky top-20 max-h-[calc(100vh-100px)] overflow-hidden flex flex-col">
+      <h3 class="text-sm font-semibold text-[#f0b90b] mb-3 flex items-center gap-2">
+        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>Live Market News
+      </h3>
+      <div id="sidebarNews" class="flex-1 overflow-y-auto space-y-3 text-xs"></div>
     </div>
-    <aside class="hidden lg:block w-80 bg-gray-900 rounded-lg border border-gray-800 p-4 h-[calc(100vh-180px)] sticky top-20 overflow-hidden">
-      <h3 class="text-yellow-500 font-semibold mb-3">Market News</h3>
-      <div id="sidebarNews" class="overflow-y-auto h-full space-y-3 text-sm"></div>
-    </aside>
-  </main>
-  <div id="searchDropdown" class="hidden fixed top-14 left-1/2 -translate-x-1/2 w-96 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto"></div>
-  <script src="/static/js/app.js"></script>
+  </aside>
+</main>
+
+<div id="searchDropdown" class="hidden fixed top-14 left-1/2 -translate-x-1/2 w-[420px] bg-[#1e2329] border border-[#2b3139] rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto"></div>
+
+<script src="/static/js/app.js"></script>
 </body>
 </html>
