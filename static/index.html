@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Hawk Eye - Crypto & Stock Terminal</title>
+<title>Hawk Eye - Crypto Terminal</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config={darkMode:'class'}</script>
 <style>
@@ -26,7 +26,7 @@
       <a href="/learn" class="text-[#848e9c] hover:text-white px-3 py-2 text-sm">Learn</a>
     </nav>
     <div class="flex-1 max-w-md mx-auto">
-      <input id="globalSearch" type="text" placeholder="Search 10,000+ coins and stocks..." autocomplete="off"
+      <input id="globalSearch" type="text" placeholder="Search coins..." autocomplete="off"
         class="w-full bg-[#0b0e11] border border-[#2b3139] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#f0b90b] placeholder-gray-500">
     </div>
     <div class="flex items-center gap-4 text-xs text-[#848e9c]">
@@ -45,11 +45,9 @@
   </div>
 
   <div class="flex gap-2 mb-0 border-b border-[#2b3139]">
-    <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-t-lg bg-[#1e2329] text-[#f0b90b] border border-b-0 border-[#2b3139]" data-tab="crypto">Crypto</button>
+    <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-t-lg bg-[#1e2329] text-[#f0b90b] border border-b-0 border-[#2b3139]" data-tab="crypto">Cryptocurrencies</button>
     <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-t-lg text-[#848e9c] hover:text-white" data-tab="gainers">Top Gainers</button>
     <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-t-lg text-[#848e9c] hover:text-white" data-tab="losers">Top Losers</button>
-    <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-t-lg text-[#848e9c] hover:text-white" data-tab="stocks">US Stocks</button>
-    <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-t-lg text-[#848e9c] hover:text-white" data-tab="psx">PSX</button>
   </div>
 </div>
 
@@ -82,12 +80,6 @@
     </section>
     <section id="tab-losers" class="tab-content hidden">
       <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-[#848e9c] text-xs border-b border-[#2b3139]"><th class="text-left py-3 px-3">#</th><th class="text-left py-3 px-3">Name</th><th class="text-right py-3 px-3">Price</th><th class="text-right py-3 px-3">24h</th><th class="text-right py-3 px-3">Volume</th><th class="text-right py-3 px-3">Market Cap</th><th></th></tr></thead><tbody id="losersBody"></tbody></table></div>
-    </section>
-    <section id="tab-stocks" class="tab-content hidden">
-      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-[#848e9c] text-xs border-b border-[#2b3139]"><th class="text-left py-3 px-3">Sym</th><th class="text-left py-3 px-3">Name</th><th class="text-right py-3 px-3">Price</th><th class="text-right py-3 px-3">Change</th><th class="text-right py-3 px-3">High</th><th class="text-right py-3 px-3">Low</th><th></th></tr></thead><tbody id="stocksBody"></tbody></table></div>
-    </section>
-    <section id="tab-psx" class="tab-content hidden">
-      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-[#848e9c] text-xs border-b border-[#2b3139]"><th class="text-left py-3 px-3">Sym</th><th class="text-left py-3 px-3">Name</th><th class="text-right py-3 px-3">Price</th><th class="text-right py-3 px-3">Change</th><th class="text-right py-3 px-3">Volume</th><th></th></tr></thead><tbody id="psxBody"></tbody></table></div>
     </section>
   </div>
 

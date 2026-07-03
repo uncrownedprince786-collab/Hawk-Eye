@@ -6,31 +6,37 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from core.crypto_engine import fetch_crypto_price, fetch_crypto_ohlc, fetch_crypto_market, fetch_orderbook
-from core.stock_engine import fetch_stock_quote, fetch_stock_fundamentals, fetch_stock_ohlc
-from core.data_engine import fetch_coingecko_data, fetch_fear_greed, fetch_coins_list, fetch_news
-from core.technicals import compute_multi_timeframe_technicals
+from core.data_engine import fetch_fear_greed, fetch_coins_list, fetch_news
 from core.spoof_detector import SpoofDetector
 from core.sentiment import analyze_sentiment
 from core.agent import generate_trade_plan
-from services.streams import BinanceStream, FinnhubStream
-from core.config import FINNHUB_API_KEY, NEWS_DATA_KEY
+from services.streams import BinanceStream
+from core.config import NEWS_DATA_KEY
 
 load_dotenv()
+app = FastAPI(title="Hawk Eye Terminal")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+    async def connect(self, ws: WebSocket):
+        await ws.accept(); self.active_connections.append(ws)
+    def disconnect(self, ws: WebSocket):
+        if ws in self.active_connections: self.active_connections.remove(ws)
+
+manager = ConnectionManager()
+binance_stream = BinanceStream()
 
 def classify_asset_type(symbol: str) -> str:
     sym = symbol.upper()
-    if sym in ("XAUUSDT","XAGUSDT","PAXGUSDT","XAUTUSDT","GOLD","SILVER"):
-        return "commodity"
-    if sym.endswith(("USDT","USD","BTC","ETH")):
+    if sym.endswith(("USDT", "USD", "BTC", "ETH")):
         return "crypto"
-    return "stock"
+    return "crypto"
 
 def normalize_symbol(symbol: str, asset_type: str) -> str:
     sym = symbol.upper()
-    if asset_type == "commodity":
-        m = {"GOLD":"PAXGUSDT","SILVER":"XAGUSDT","XAU":"PAXGUSDT","XAG":"XAGUSDT"}
-        return m.get(sym, sym if sym.endswith("USDT") else sym+"USDT")
-    if asset_type == "crypto" and not sym.endswith("USDT"):
+    if not sym.endswith("USDT"):
         return sym + "USDT"
     return sym
 
@@ -113,21 +119,6 @@ def _enrich_coingecko(cg: dict, price: float|None=None) -> dict:
         cg["supply_scarcity"] = "scarce" if ratio<0.8 else "abundant" if ratio>0.95 else "moderate"
     return cg
 
-app = FastAPI(title="Hawk Eye Terminal")
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: list[WebSocket] = []
-    async def connect(self, ws: WebSocket):
-        await ws.accept(); self.active_connections.append(ws)
-    def disconnect(self, ws: WebSocket):
-        if ws in self.active_connections: self.active_connections.remove(ws)
-
-manager = ConnectionManager()
-binance_stream = BinanceStream()
-finnhub_stream = FinnhubStream()
-
 @app.get("/", response_class=HTMLResponse)
 async def root():
     with open("static/index.html","r",encoding="utf-8") as f: return HTMLResponse(content=f.read())
@@ -138,21 +129,11 @@ async def coin_page():
 
 @app.get("/exchanges", response_class=HTMLResponse)
 async def exchanges_page():
-    return HTMLResponse("""<html><head><title>Hawk Eye - Exchanges</title><link rel="stylesheet" href="/static/css/style.css"></head><body><header class="header"><div class="container header-inner"><a href="/" class="logo">HAWK EYE</a><nav class="nav"><a href="/" class="nav-link">Coins</a><a href="/exchanges" class="nav-link active">Exchanges</a><a href="/learn" class="nav-link">Learn</a></nav></div></header><main style="max-width:1400px;margin:40px auto;padding:20px;"><h2 style="color:#f0b90b;">Top Exchanges</h2><table class="coin-table"><thead><tr><th>#</th><th>Exchange</th><th>Trust Score</th><th>24h Volume (BTC)</th><th>Country</th><th>Year</th></tr></thead><tbody id="exBody"><tr><td colspan="6">Loading...</td></tr></tbody></table></main><script>fetch('https://api.coingecko.com/api/v3/exchanges?per_page=20').then(r=>r.json()).then(d=>{document.getElementById('exBody').innerHTML=d.map((e,i)=>`<tr><td>${i+1}</td><td><a href="${e.url}" target="_blank" style="color:#3da5d9;">${e.name}</a></td><td>${e.trust_score}</td><td>${e.trade_volume_24h_btc.toFixed(2)}</td><td>${e.country||'N/A'}</td><td>${e.year_established||'N/A'}</td></tr>`).join('')}).catch(()=>document.getElementById('exBody').innerHTML='<tr><td colspan=6>Failed to load.</td></tr>')</script></body></html>""")
+    return HTMLResponse("""<html><head><title>Hawk Eye - Exchanges</title><link rel="stylesheet" href="/static/css/style.css"></head><body class="bg-[#0b0e11] text-white"><header class="bg-[#1e2329] border-b border-[#2b3139] p-4"><a href="/" class="text-[#f0b90b] font-bold text-xl">HAWK EYE</a></header><main class="max-w-4xl mx-auto p-4"><h2 class="text-[#f0b90b] text-xl mb-4">Top Exchanges</h2><div id="exchanges"></div></main><script>fetch('https://api.coingecko.com/api/v3/exchanges?per_page=20').then(r=>r.json()).then(d=>{document.getElementById('exchanges').innerHTML=d.map(e=>'<div class="bg-[#1e2329] p-3 rounded mb-2 flex justify-between"><span>'+e.name+'</span><span class="text-[#848e9c]">Trust: '+e.trust_score+'</span></div>').join('')})</script></body></html>""")
 
 @app.get("/learn", response_class=HTMLResponse)
 async def learn_page():
-    return HTMLResponse("""<html><head><title>Hawk Eye - Learn Trading</title><link rel="stylesheet" href="/static/css/style.css"></head><body><header class="header"><div class="container header-inner"><a href="/" class="logo">HAWK EYE</a><nav class="nav"><a href="/" class="nav-link">Coins</a><a href="/exchanges" class="nav-link">Exchanges</a><a href="/learn" class="nav-link active">Learn</a></nav></div></header><main style="max-width:900px;margin:40px auto;padding:20px;"><h1 style="color:#f0b90b;">Trading Education Center</h1><div class="panel" style="margin-top:20px;"><h3 style="color:#3da5d9;">1. What is Trading?</h3><p>Buying and selling assets to profit from price movements. Buy low, sell high. Or short sell high, buy back low.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">2. Support & Resistance</h3><p><b>Support:</b> Price floor where buying pressure stops declines.<br><b>Resistance:</b> Price ceiling where selling pressure stops advances.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">3. RSI (Relative Strength Index)</h3><p>Measures momentum on a 0-100 scale.<br><b>Above 70:</b> Overbought - potential reversal down.<br><b>Below 30:</b> Oversold - potential reversal up.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">4. MACD</h3><p>Trend-following momentum indicator.<br><b>MACD above Signal:</b> Bullish momentum.<br><b>MACD below Signal:</b> Bearish momentum.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">5. Risk Management</h3><p><b>1-2% Rule:</b> Never risk more than 1-2% per trade.<br><b>Stop Loss:</b> Always set before entering.<br><b>Risk/Reward:</b> Minimum 1:2. Risk $1 to make $2.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">6. Fear & Greed Index</h3><p><b>Extreme Fear (0-25):</b> Often best time to buy.<br><b>Extreme Greed (75-100):</b> Often time to sell.</p></div><div class="panel" style="margin-top:16px;"><h3 style="color:#3da5d9;">7. Candlestick Patterns</h3><p><b>Doji:</b> Open=Close. Indecision.<br><b>Hammer:</b> Long lower wick. Bullish reversal.<br><b>Shooting Star:</b> Long upper wick. Bearish reversal.</p></div><p style="margin-top:30px;color:#848e9c;text-align:center;">Trade smart. Manage risk. Let data guide you.</p></main></body></html>""")
-
-@app.get("/api/stock/{symbol}")
-async def stock_quote(symbol: str):
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={FINNHUB_API_KEY}")
-            if resp.status_code == 200:
-                return JSONResponse(resp.json())
-    except: pass
-    return JSONResponse({"error": "Stock data unavailable"}, status_code=500)
+    return HTMLResponse("""<html><head><title>Learn Trading</title><link rel="stylesheet" href="/static/css/style.css"></head><body class="bg-[#0b0e11] text-white"><header class="bg-[#1e2329] border-b border-[#2b3139] p-4"><a href="/" class="text-[#f0b90b] font-bold text-xl">HAWK EYE</a></header><main class="max-w-4xl mx-auto p-4 space-y-4"><h1 class="text-[#f0b90b] text-2xl font-bold">Trading Education</h1><p>Learn about support/resistance, RSI, MACD, candlestick patterns, and risk management.</p></main></body></html>""")
 
 @app.get("/api/news")
 async def news_proxy(symbol: str = ""):
@@ -161,13 +142,13 @@ async def news_proxy(symbol: str = ""):
         return JSONResponse(news)
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(f"https://finnhub.io/api/v1/news?category=general&token={FINNHUB_API_KEY}")
+            resp = await client.get(f"https://finnhub.io/api/v1/news?category=general&token={os.getenv('FINNHUB_API_KEY','')}")
             if resp.status_code == 200:
                 return JSONResponse(resp.json())
     except: pass
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(f"https://newsdata.io/api/1/news?apikey={NEWS_DATA_KEY}&q=forex crypto stocks&category=business,finance&language=en&size=12")
+            resp = await client.get(f"https://newsdata.io/api/1/news?apikey={NEWS_DATA_KEY}&q=crypto&category=business,finance&language=en&size=12")
             if resp.status_code == 200:
                 return JSONResponse(resp.json())
     except: pass
@@ -176,11 +157,9 @@ async def news_proxy(symbol: str = ""):
 @app.websocket("/ws/{symbol}")
 async def ws_endpoint(ws: WebSocket, symbol: str):
     await manager.connect(ws)
-    at = classify_asset_type(symbol)
-    sym = normalize_symbol(symbol, at)
+    sym = normalize_symbol(symbol, "crypto")
     try:
-        if at == "stock": await finnhub_stream.subscribe(symbol, ws)
-        else: await binance_stream.subscribe(sym, ws)
+        await binance_stream.subscribe(sym, ws)
     except WebSocketDisconnect: manager.disconnect(ws)
     except Exception: manager.disconnect(ws)
 
@@ -196,59 +175,25 @@ async def price_ticker(symbol: str):
         return JSONResponse(price_data)
     return JSONResponse({"price": 0}, status_code=500)
 
-
-def _sanitize_for_json(obj):
-    """Replace NaN/Infinity with None for JSON compliance."""
-    import math
-    if isinstance(obj, dict):
-        return {k: _sanitize_for_json(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [_sanitize_for_json(v) for v in obj]
-    elif isinstance(obj, float):
-        if math.isnan(obj) or math.isinf(obj):
-            return None
-    return obj
-
 @app.post("/analyze")
 async def analyze(request: Request):
     try:
         body = await request.json()
         symbol = body.get("symbol","").strip().upper()
         if not symbol: raise ValueError("Symbol required")
-        asset_type = classify_asset_type(symbol)
-        symbol = normalize_symbol(symbol, asset_type)
+        symbol = normalize_symbol(symbol, "crypto")
 
-        price_data = {}
-        technicals = {}
-        coingecko_data = {}
-        orderbook = {"bids":[],"asks":[]}
-        news = []
+        price_data = await fetch_crypto_price(symbol) or {}
+        ohlc = await fetch_crypto_ohlc(symbol, 30)
+        technicals = compute_multi_timeframe_technicals_from_ohlc(ohlc) if ohlc else {}
+        coingecko_data = await fetch_crypto_market(symbol) or {}
+        orderbook = await fetch_orderbook(symbol) or {"bids":[],"asks":[]}
+        news = await _fetch_coin_news(symbol)
         fear_greed = await fetch_fear_greed()
-
-        if asset_type in ("crypto","commodity"):
-            price_data = await fetch_crypto_price(symbol) or {}
-            ohlc = await fetch_crypto_ohlc(symbol, 30)
-            if ohlc:
-                technicals = compute_multi_timeframe_technicals_from_ohlc(ohlc)
-            else:
-                technicals = {}
-            coingecko_data = await fetch_crypto_market(symbol) or {}
-            orderbook = await fetch_orderbook(symbol) or {"bids":[],"asks":[]}
-            news = await _fetch_coin_news(symbol)
-        else:
-            price_data = await fetch_stock_quote(symbol) or {}
-            ohlc = await fetch_stock_ohlc(symbol)
-            if ohlc:
-                technicals = compute_multi_timeframe_technicals_from_ohlc(ohlc)
-            else:
-                technicals = {}
-            coingecko_data = {}
-            news = await _fetch_coin_news(symbol)
+        sentiment = analyze_sentiment(news)
 
         if coingecko_data:
             coingecko_data = _enrich_coingecko(coingecko_data, price_data.get("price"))
-
-        sentiment = analyze_sentiment(news)
 
         sd = SpoofDetector()
         sd.update(symbol, orderbook.get("bids",[]), orderbook.get("asks",[]))
@@ -259,7 +204,7 @@ async def analyze(request: Request):
         bias = "buyers_dominant" if bid_v>ask_v else "sellers_dominant" if ask_v>bid_v else "balanced"
 
         full_data = {
-            "symbol":symbol, "asset_type":asset_type,
+            "symbol":symbol, "asset_type":"crypto",
             "timestamp_utc":datetime.now(timezone.utc).isoformat(),
             "price_data":price_data, "technicals_1d":technicals,
             "technicals":technicals, "multi_timeframe":{},
@@ -271,11 +216,10 @@ async def analyze(request: Request):
         }
 
         trade_plan = generate_trade_plan(full_data)
-        return JSONResponse({"trade_plan":trade_plan, "data_snapshot":_sanitize_for_json(full_data)})
+        return JSONResponse({"trade_plan":trade_plan, "data_snapshot":full_data})
     except Exception as e:
         return JSONResponse({"error":str(e)}, status_code=500)
 
 @app.on_event("shutdown")
 async def shutdown():
-    await binance_stream.close(); await finnhub_stream.close()
-
+    await binance_stream.close()
