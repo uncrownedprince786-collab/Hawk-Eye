@@ -196,6 +196,19 @@ async def price_ticker(symbol: str):
         return JSONResponse(price_data)
     return JSONResponse({"price": 0}, status_code=500)
 
+
+def _sanitize_for_json(obj):
+    """Replace NaN/Infinity with None for JSON compliance."""
+    import math
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_sanitize_for_json(v) for v in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+    return obj
+
 @app.post("/analyze")
 async def analyze(request: Request):
     try:
@@ -258,10 +271,11 @@ async def analyze(request: Request):
         }
 
         trade_plan = generate_trade_plan(full_data)
-        return JSONResponse({"trade_plan":trade_plan, "data_snapshot":full_data})
+        return JSONResponse({"trade_plan":trade_plan, "data_snapshot":_sanitize_for_json(full_data)})
     except Exception as e:
         return JSONResponse({"error":str(e)}, status_code=500)
 
 @app.on_event("shutdown")
 async def shutdown():
     await binance_stream.close(); await finnhub_stream.close()
+
