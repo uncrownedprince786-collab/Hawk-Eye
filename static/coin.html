@@ -1,1 +1,67 @@
-﻿<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Hawk Eye - Coin Analysis</title><link rel="stylesheet" href="/static/css/style.css"></head><body class="light"><header class="header"><div class="container header-inner"><a href="/" class="logo">HAWK EYE</a><nav class="nav"><a href="/">Coins</a><a href="/exchanges">Exchanges</a><a href="/learn">Learn</a></nav><input type="text" id="coinSearch" class="search-box" placeholder="Search..." autocomplete="off"><button id="themeToggle" class="theme-btn" title="Toggle dark/light mode">🌓</button></div></header><main class="coin-page container"><div class="coin-summary"><div><h1 id="coinName">--</h1><div class="price-block"><span class="current-price" id="coinPrice">--</span><span class="price-change" id="coinChange">--</span></div></div></div><div class="coin-layout"><div class="main-col"><div class="card chart-card"><div class="card-header">Price Chart</div><canvas id="priceChart"></canvas></div><div class="card trade-card"><div class="card-header">Hawk Eye Trade Plan</div><pre id="tradePlan">Click GENERATE to get analysis.</pre><button class="btn-primary" onclick="generateTradePlan()">GENERATE TRADE PLAN</button></div></div><div class="side-col"><div class="card"><div class="card-header">Price Statistics</div><div id="priceStats"></div></div><div class="card"><div class="card-header">Latest News</div><div id="newsFeed"></div></div><div class="card"><div class="card-header">Market Sentiment</div><div id="sentimentData"></div></div></div></div></main><script src="/static/js/app.js"></script></body></html>
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Hawk Eye - Coin Analysis</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="https://s3.tradingview.com/tv.js"></script>
+</head>
+<body>
+<header class="header">
+  <div class="container header-inner">
+    <a href="/" class="logo">HAWK EYE</a>
+    <nav class="nav">
+      <a href="/">Coins</a>
+      <a href="/exchanges">Exchanges</a>
+      <a href="/learn">Learn</a>
+    </nav>
+    <input type="text" id="coinSearch" class="search-box" placeholder="Search..." autocomplete="off">
+    <button id="themeToggle" class="theme-btn" title="Toggle theme">☀️</button>
+  </div>
+</header>
+<main class="coin-page container">
+  <div class="coin-summary">
+    <div>
+      <h1 id="coinName">--</h1>
+      <div class="price-block">
+        <span class="current-price" id="coinPrice">--</span>
+        <span class="price-change" id="coinChange">--</span>
+      </div>
+    </div>
+  </div>
+  <div class="coin-layout">
+    <div class="main-col">
+      <div class="card chart-card">
+        <div class="card-header">Live Chart</div>
+        <div id="tvChart" style="height:500px"></div>
+      </div>
+      <div class="card trade-card">
+        <div class="card-header">Hawk Eye Trade Plan</div>
+        <pre id="tradePlan">Click GENERATE to get analysis.</pre>
+        <button class="btn-primary" onclick="generateTradePlan()">GENERATE TRADE PLAN</button>
+      </div>
+    </div>
+    <div class="side-col">
+      <div class="card">
+        <div class="card-header">Order Book</div>
+        <div id="orderBook" class="order-book"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Price Statistics</div>
+        <div id="priceStats"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Latest News</div>
+        <div id="newsFeed"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Market Sentiment</div>
+        <div id="sentimentData"></div>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
