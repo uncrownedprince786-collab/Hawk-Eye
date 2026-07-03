@@ -1,63 +1,378 @@
-Ôªø<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Hawk Eye - Crypto & Stock Market</title>
-<link rel="stylesheet" href="/static/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hawk Eye ñ Crypto & Stock Market</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .loader { border-top-color: #f0b90b; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .sparkline { width: 100px; height: 36px; }
+    .coin-icon { width: 24px; height: 24px; vertical-align: middle; margin-right: 6px; }
+  </style>
 </head>
-<body>
-<header class="header">
-  <div class="container header-inner">
-    <a href="/" class="logo">HAWK EYE</a>
-    <nav class="nav">
-      <a href="/" class="active">Coins</a>
-      <a href="/exchanges">Exchanges</a>
-      <a href="/learn">Learn</a>
-    </nav>
-    <input type="text" id="globalSearch" class="search-box" placeholder="Search coins or stocks..." autocomplete="off">
-    <button id="themeToggle" class="theme-btn" title="Toggle theme">‚òÄÔ∏è</button>
-  </div>
-</header>
-<div class="stats-row">
-  <div class="stat"><span class="label">Total Market Cap</span><span class="value" id="totalMcap">--</span></div>
-  <div class="stat"><span class="label">24h Volume</span><span class="value" id="totalVolume">--</span></div>
-  <div class="stat"><span class="label">BTC Dominance</span><span class="value" id="btcDom">--</span></div>
-  <div class="stat"><span class="label">Fear & Greed</span><span class="value" id="fearGreedVal">--</span></div>
-</div>
-<main class="main-content">
-  <div class="left-panel">
-    <div class="tabs">
-      <button class="tab active" onclick="showSection('crypto')">Cryptocurrencies</button>
-      <button class="tab" onclick="showSection('gainers')">Top Gainers</button>
-      <button class="tab" onclick="showSection('losers')">Top Losers</button>
-      <button class="tab" onclick="showSection('stocks')">Stocks</button>
+<body class="bg-gray-950 text-gray-200">
+  <header class="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 flex items-center h-14 gap-6">
+      <a href="/" class="text-xl font-bold text-yellow-500 tracking-wider">HAWK EYE</a>
+      <nav class="flex gap-4 text-sm">
+        <a href="/" class="text-yellow-500 border-b-2 border-yellow-500 pb-1">Coins</a>
+        <a href="/exchanges" class="text-gray-400 hover:text-gray-200">Exchanges</a>
+        <a href="/learn" class="text-gray-400 hover:text-gray-200">Learn</a>
+      </nav>
+      <input id="globalSearch" type="text" placeholder="Search coins or stocksÖ" autocomplete="off"
+             class="ml-auto bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm w-64 focus:outline-none focus:border-yellow-500">
+      <button id="themeToggle" class="text-lg" title="Toggle theme">??</button>
     </div>
-    <section id="cryptoSection" class="section">
-      <div class="table-wrap">
-        <table class="coin-table">
-          <thead><tr><th>#</th><th>Name</th><th>Price</th><th>1h</th><th>24h</th><th>7d</th><th>24h Vol</th><th>Market Cap</th><th>7d Chart</th><th></th></tr></thead>
-          <tbody id="coinTableBody"></tbody>
-        </table>
-      </div>
-      <button class="btn-load-more" onclick="loadMoreCoins()">Load More</button>
-    </section>
-    <section id="gainersSection" class="section hidden">
-      <div class="table-wrap"><table class="coin-table"><thead><tr><th>#</th><th>Name</th><th>Price</th><th>24h</th><th>Volume</th><th>Market Cap</th><th></th></tr></thead><tbody id="gainersBody"></tbody></table></div>
-    </section>
-    <section id="losersSection" class="section hidden">
-      <div class="table-wrap"><table class="coin-table"><thead><tr><th>#</th><th>Name</th><th>Price</th><th>24h</th><th>Volume</th><th>Market Cap</th><th></th></tr></thead><tbody id="losersBody"></tbody></table></div>
-    </section>
-    <section id="stocksSection" class="section hidden">
-      <div class="table-wrap"><table class="coin-table"><thead><tr><th>Sym</th><th>Name</th><th>Price</th><th>Chg</th><th>Vol</th><th>MCap</th><th>P/E</th><th></th></tr></thead><tbody id="stocksBody"></tbody></table></div>
-    </section>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 py-4">
+    <div class="flex flex-wrap gap-6 text-sm mb-4">
+      <div><span class="text-gray-500">Total Market Cap</span><br><span id="totalMcap" class="font-semibold">--</span></div>
+      <div><span class="text-gray-500">24h Volume</span><br><span id="totalVolume" class="font-semibold">--</span></div>
+      <div><span class="text-gray-500">BTC Dominance</span><br><span id="btcDom" class="font-semibold">--</span></div>
+      <div><span class="text-gray-500">Fear & Greed</span><br><span id="fearGreedVal" class="font-semibold">--</span></div>
+    </div>
+
+    <div class="flex gap-4 mb-0">
+      <button class="tab active px-4 py-2 rounded-t-lg bg-gray-800 text-yellow-500 border border-b-0 border-gray-700" onclick="showSection('crypto')">Cryptocurrencies</button>
+      <button class="tab px-4 py-2 rounded-t-lg bg-gray-900 text-gray-400 border border-gray-700 hover:text-gray-200" onclick="showSection('gainers')">Top Gainers</button>
+      <button class="tab px-4 py-2 rounded-t-lg bg-gray-900 text-gray-400 border border-gray-700 hover:text-gray-200" onclick="showSection('losers')">Top Losers</button>
+      <button class="tab px-4 py-2 rounded-t-lg bg-gray-900 text-gray-400 border border-gray-700 hover:text-gray-200" onclick="showSection('stocks')">Stocks</button>
+      <button class="tab px-4 py-2 rounded-t-lg bg-gray-900 text-gray-400 border border-gray-700 hover:text-gray-200" onclick="showSection('news')">News</button>
+    </div>
   </div>
-  <aside class="news-sidebar" id="newsSidebar">
-    <div class="news-header"><h3>Market News</h3></div>
-    <div class="news-scroll" id="newsGrid"><div class="loader"></div></div>
-  </aside>
-</main>
-<div class="search-dropdown hidden" id="searchDropdown"></div>
-<script src="/static/js/app.js"></script>
+
+  <main class="max-w-7xl mx-auto px-4 flex gap-6">
+    <div class="flex-1 min-w-0">
+      <!-- Crypto Section -->
+      <section id="cryptoSection" class="section">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="text-gray-400 border-b border-gray-800">
+              <tr>
+                <th class="text-left py-2 px-2">#</th>
+                <th class="text-left py-2 px-2">Name</th>
+                <th class="text-right py-2 px-2">Price</th>
+                <th class="text-right py-2 px-2">1h</th>
+                <th class="text-right py-2 px-2">24h</th>
+                <th class="text-right py-2 px-2">7d</th>
+                <th class="text-right py-2 px-2">24h Vol</th>
+                <th class="text-right py-2 px-2">Market Cap</th>
+                <th class="text-right py-2 px-2">7d Chart</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="coinTableBody"></tbody>
+          </table>
+        </div>
+        <button id="loadMoreBtn" onclick="loadMoreCoins()" class="mt-4 mx-auto block bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded px-6 py-2 text-sm">Load More</button>
+      </section>
+
+      <!-- Gainers Section -->
+      <section id="gainersSection" class="section hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="text-gray-400 border-b border-gray-800">
+              <tr>
+                <th class="text-left py-2 px-2">#</th>
+                <th class="text-left py-2 px-2">Name</th>
+                <th class="text-right py-2 px-2">Price</th>
+                <th class="text-right py-2 px-2">24h</th>
+                <th class="text-right py-2 px-2">Volume</th>
+                <th class="text-right py-2 px-2">Market Cap</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="gainersBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Losers Section -->
+      <section id="losersSection" class="section hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="text-gray-400 border-b border-gray-800">
+              <tr>
+                <th class="text-left py-2 px-2">#</th>
+                <th class="text-left py-2 px-2">Name</th>
+                <th class="text-right py-2 px-2">Price</th>
+                <th class="text-right py-2 px-2">24h</th>
+                <th class="text-right py-2 px-2">Volume</th>
+                <th class="text-right py-2 px-2">Market Cap</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="losersBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Stocks Section -->
+      <section id="stocksSection" class="section hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="text-gray-400 border-b border-gray-800">
+              <tr>
+                <th class="text-left py-2 px-2">Sym</th>
+                <th class="text-left py-2 px-2">Name</th>
+                <th class="text-right py-2 px-2">Price</th>
+                <th class="text-right py-2 px-2">Chg</th>
+                <th class="text-right py-2 px-2">Vol</th>
+                <th class="text-right py-2 px-2">MCap</th>
+                <th class="text-right py-2 px-2">P/E</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="stocksBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- News Section (inside left panel for tab view) -->
+      <section id="newsSection" class="section hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="newsGrid"></div>
+      </section>
+    </div>
+
+    <!-- Right Sidebar (news sidebar) -->
+    <aside class="hidden lg:block w-80 bg-gray-900 rounded-lg border border-gray-800 p-4 h-[calc(100vh-180px)] sticky top-20 overflow-hidden">
+      <h3 class="text-yellow-500 font-semibold mb-3">Market News</h3>
+      <div id="sidebarNews" class="overflow-y-auto h-full space-y-3 text-sm"></div>
+    </aside>
+  </main>
+
+  <div id="searchDropdown" class="hidden fixed top-14 left-1/2 -translate-x-1/2 w-96 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto"></div>
+
+<script>
+const API = '';
+let coinPage = 1;
+const L = '<div class="loader w-6 h-6 border-2 border-gray-600 rounded-full mx-auto"></div>';
+
+function fP(p) { return p ? (p >= 1 ? '$' + p.toLocaleString() : '$' + p.toFixed(6)) : '--'; }
+function fL(n) { return n ? (n >= 1e12 ? '$' + (n/1e12).toFixed(2) + 'T' : n >= 1e9 ? '$' + (n/1e9).toFixed(2) + 'B' : n >= 1e6 ? '$' + (n/1e6).toFixed(2) + 'M' : '$' + n.toLocaleString()) : '--'; }
+function fC(v) { return v == null ? '--' : '<span class="' + (v >= 0 ? 'text-green-400' : 'text-red-400') + '">' + (v >= 0 ? '+' : '') + v.toFixed(2) + '%</span>'; }
+function spark(p) {
+  if (!p || p.length < 2) return '';
+  const mn = Math.min(...p), mx = Math.max(...p), r = mx - mn || 1, w = 100, h = 36;
+  const cl = p[p.length-1] >= p[0] ? '#0ecb81' : '#f6465d';
+  const pts = p.map((v,i) => (i/(p.length-1))*w + ',' + (h - ((v - mn) / r) * h)).join(' ');
+  return `<svg width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="${cl}" stroke-width="1.5"/></svg>`;
+}
+
+// Theme toggle
+(function() {
+  const btn = document.getElementById('themeToggle');
+  if (!btn) return;
+  let theme = localStorage.getItem('hawk-theme') || 'dark';
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  btn.textContent = theme === 'dark' ? '??' : '??';
+  btn.addEventListener('click', () => {
+    theme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem('hawk-theme', theme);
+    btn.textContent = theme === 'dark' ? '??' : '??';
+  });
+})();
+
+// Tabs
+window.showSection = function(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+  document.getElementById(name + 'Section').classList.remove('hidden');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('bg-gray-800', 'text-yellow-500', 'border-b-0'));
+  event.target.classList.add('bg-gray-800', 'text-yellow-500', 'border-b-0');
+  if (name === 'gainers') loadGainers();
+  if (name === 'losers') loadLosers();
+  if (name === 'stocks') loadStocks();
+  if (name === 'news') loadNews();
+};
+
+async function loadCoins(page = 1) {
+  const tb = document.getElementById('coinTableBody');
+  if (page === 1) tb.innerHTML = '<tr><td colspan="10" class="text-center py-8">' + L + '</td></tr>';
+  try {
+    const r = await fetch(API + '/api/coins?page=' + page + '&per_page=50');
+    const coins = await r.json();
+    if (page === 1) tb.innerHTML = '';
+    tb.innerHTML += coins.map((c, i) => `
+      <tr class="border-b border-gray-800 hover:bg-gray-800/50 transition">
+        <td class="py-2 px-2 text-gray-500">${(page-1)*50 + i + 1}</td>
+        <td class="py-2 px-2">
+          <img class="coin-icon inline-block" src="${c.image || ''}" onerror="this.style.display='none'">
+          <span class="font-medium cursor-pointer hover:text-yellow-500" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span>
+          <span class="text-gray-500 ml-1">${c.symbol.toUpperCase()}</span>
+        </td>
+        <td class="py-2 px-2 text-right">${fP(c.current_price)}</td>
+        <td class="py-2 px-2 text-right">${fC(c.price_change_percentage_1h_in_currency)}</td>
+        <td class="py-2 px-2 text-right">${fC(c.price_change_percentage_24h_in_currency)}</td>
+        <td class="py-2 px-2 text-right">${fC(c.price_change_percentage_7d_in_currency)}</td>
+        <td class="py-2 px-2 text-right">${fL(c.total_volume)}</td>
+        <td class="py-2 px-2 text-right">${fL(c.market_cap)}</td>
+        <td class="py-2 px-2">${spark(c.sparkline_in_7d?.price)}</td>
+        <td class="py-2 px-2"><button class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-semibold px-3 py-1 rounded" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">TRADE</button></td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    tb.innerHTML = '<tr><td colspan="10" class="text-center py-8 text-red-400">Failed to load. RetryingÖ</td></tr>';
+    setTimeout(() => loadCoins(page), 5000);
+  }
+}
+
+window.loadMoreCoins = function() { coinPage++; loadCoins(coinPage); };
+
+async function loadGainers() {
+  const tb = document.getElementById('gainersBody');
+  tb.innerHTML = '<tr><td colspan="7" class="text-center py-8">' + L + '</td></tr>';
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_desc&per_page=20&sparkline=false&price_change_percentage=24h');
+    const c = await r.json();
+    tb.innerHTML = c.map((c,i) => `
+      <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+        <td class="py-2 px-2">${i+1}</td>
+        <td class="py-2 px-2"><img class="coin-icon" src="${c.image||''}" onerror="this.style.display='none'"><span class="font-medium cursor-pointer hover:text-yellow-500" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span></td>
+        <td class="py-2 px-2 text-right">${fP(c.current_price)}</td>
+        <td class="py-2 px-2 text-right">${fC(c.price_change_percentage_24h_in_currency)}</td>
+        <td class="py-2 px-2 text-right">${fL(c.total_volume)}</td>
+        <td class="py-2 px-2 text-right">${fL(c.market_cap)}</td>
+        <td class="py-2 px-2"><button class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-semibold px-3 py-1 rounded" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">TRADE</button></td>
+      </tr>
+    `).join('');
+  } catch(e) { tb.innerHTML = '<tr><td colspan="7" class="text-center py-8">Failed.</td></tr>'; }
+}
+
+async function loadLosers() {
+  const tb = document.getElementById('losersBody');
+  tb.innerHTML = '<tr><td colspan="7" class="text-center py-8">' + L + '</td></tr>';
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_asc&per_page=20&sparkline=false&price_change_percentage=24h');
+    const c = await r.json();
+    tb.innerHTML = c.map((c,i) => `
+      <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+        <td class="py-2 px-2">${i+1}</td>
+        <td class="py-2 px-2"><img class="coin-icon" src="${c.image||''}" onerror="this.style.display='none'"><span class="font-medium cursor-pointer hover:text-yellow-500" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span></td>
+        <td class="py-2 px-2 text-right">${fP(c.current_price)}</td>
+        <td class="py-2 px-2 text-right">${fC(c.price_change_percentage_24h_in_currency)}</td>
+        <td class="py-2 px-2 text-right">${fL(c.total_volume)}</td>
+        <td class="py-2 px-2 text-right">${fL(c.market_cap)}</td>
+        <td class="py-2 px-2"><button class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-semibold px-3 py-1 rounded" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">TRADE</button></td>
+      </tr>
+    `).join('');
+  } catch(e) { tb.innerHTML = '<tr><td colspan="7" class="text-center py-8">Failed.</td></tr>'; }
+}
+
+async function loadStocks() {
+  const syms = ['AAPL','MSFT','GOOGL','AMZN','NVDA','TSLA','META','JPM','V','JNJ','WMT','PG','MA','UNH','HD','BAC','DIS','NFLX','ADBE','CRM'];
+  const tb = document.getElementById('stocksBody');
+  tb.innerHTML = '<tr><td colspan="8" class="text-center py-8">' + L + '</td></tr>';
+  let h = '';
+  for (const s of syms) {
+    try {
+      const r = await fetch(API + '/api/stock/' + s);
+      const d = await r.json();
+      if (d.c) {
+        const ch = d.dp || 0;
+        h += `<tr class="border-b border-gray-800 hover:bg-gray-800/50">
+          <td class="py-2 px-2">${s}</td>
+          <td class="py-2 px-2"><span class="font-medium cursor-pointer hover:text-yellow-500" onclick="location.href='/coin?symbol=${s}'">${s}</span></td>
+          <td class="py-2 px-2 text-right">$${d.c.toFixed(2)}</td>
+          <td class="py-2 px-2 text-right">${fC(ch)}</td>
+          <td class="py-2 px-2 text-right">--</td>
+          <td class="py-2 px-2 text-right">--</td>
+          <td class="py-2 px-2 text-right">--</td>
+          <td class="py-2 px-2"><button class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-semibold px-3 py-1 rounded" onclick="location.href='/coin?symbol=${s}'">TRADE</button></td>
+        </tr>`;
+      }
+    } catch(e) {}
+  }
+  tb.innerHTML = h || '<tr><td colspan="8" class="text-center py-8">Stock data unavailable.</td></tr>';
+}
+
+async function loadNews() {
+  const grid = document.getElementById('newsGrid');
+  grid.innerHTML = L;
+  try {
+    const r = await fetch(API + '/api/news');
+    const d = await r.json();
+    let items = [];
+    if (Array.isArray(d) && d.length > 0) items = d;
+    else if (d.results) items = d.results;
+    grid.innerHTML = items.slice(0,12).map(a => `
+      <div class="bg-gray-900 rounded-lg p-3 border border-gray-800">
+        <h3 class="font-medium text-blue-400 text-sm">${a.headline || a.title}</h3>
+        <p class="text-gray-400 text-xs mt-1">${(a.summary || a.description || '').slice(0,150)}</p>
+        <span class="text-gray-500 text-xs">${a.source || a.source_id || ''}</span>
+      </div>
+    `).join('');
+  } catch(e) { grid.innerHTML = '<p class="text-gray-500">News unavailable.</p>'; }
+}
+
+// Sidebar news (always visible)
+async function loadSidebarNews() {
+  const s = document.getElementById('sidebarNews');
+  if (!s) return;
+  s.innerHTML = L;
+  try {
+    const r = await fetch(API + '/api/news');
+    const d = await r.json();
+    let items = [];
+    if (Array.isArray(d) && d.length > 0) items = d;
+    else if (d.results) items = d.results;
+    s.innerHTML = items.slice(0,15).map(a => `
+      <div class="pb-2 border-b border-gray-800">
+        <div class="font-medium text-blue-400 text-xs cursor-pointer hover:underline">${a.headline || a.title}</div>
+        <div class="text-gray-500 text-xs mt-0.5">${(a.summary || a.description || '').slice(0,120)}</div>
+      </div>
+    `).join('');
+  } catch(e) { s.innerHTML = '<p class="text-gray-500">News unavailable.</p>'; }
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/global');
+    const d = await r.json();
+    document.getElementById('totalMcap').textContent = fL(d.data.total_market_cap.usd);
+    document.getElementById('totalVolume').textContent = fL(d.data.total_volume.usd);
+    document.getElementById('btcDom').textContent = d.data.market_cap_percentage.btc.toFixed(1) + '%';
+  } catch(e) {}
+  try {
+    const r = await fetch('https://api.alternative.me/fng/?limit=1');
+    const d = await r.json();
+    const fg = d.data[0];
+    document.getElementById('fearGreedVal').textContent = fg.value + ' - ' + fg.value_classification;
+  } catch(e) {}
+}
+
+// Search dropdown
+const si = document.getElementById('globalSearch');
+if (si) {
+  si.addEventListener('input', async function() {
+    const q = this.value.trim();
+    if (q.length < 1) { document.getElementById('searchDropdown').classList.add('hidden'); return; }
+    try {
+      const r = await fetch('https://api.coingecko.com/api/v3/search?query=' + q);
+      const d = await r.json();
+      const coins = d.coins?.slice(0,8) || [];
+      const dd = document.getElementById('searchDropdown');
+      dd.innerHTML = coins.map(c => `
+        <div class="flex items-center gap-2 p-2 hover:bg-gray-800 cursor-pointer" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">
+          <img src="${c.thumb}" class="w-5 h-5"><span>${c.name}</span><span class="text-gray-500 text-xs ml-auto">${c.symbol.toUpperCase()}</span>
+        </div>
+      `).join('');
+      dd.classList.remove('hidden');
+    } catch(e) {}
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadCoins();
+  loadStats();
+  loadSidebarNews();
+});
+</script>
 </body>
 </html>
