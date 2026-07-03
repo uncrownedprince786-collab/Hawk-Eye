@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hawk Eye � Crypto & Stock Market</title>
+  <title>Hawk Eye - Crypto & Stock Market</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config={darkMode:'class'}</script>
   <style>
@@ -24,9 +24,9 @@
         <a href="/exchanges" class="text-gray-400 hover:text-gray-200">Exchanges</a>
         <a href="/learn" class="text-gray-400 hover:text-gray-200">Learn</a>
       </nav>
-      <input id="globalSearch" type="text" placeholder="Search coins or stocks�" autocomplete="off"
+      <input id="globalSearch" type="text" placeholder="Search coins or stocks" autocomplete="off"
              class="ml-auto bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm w-64 focus:outline-none focus:border-yellow-500">
-      <button id="themeToggle" class="text-lg" title="Toggle theme">??</button>
+      <button id="themeToggle" class="text-lg" title="Toggle theme">☀️</button>
     </div>
   </header>
 
@@ -49,7 +49,6 @@
 
   <main class="max-w-7xl mx-auto px-4 flex gap-6">
     <div class="flex-1 min-w-0">
-      <!-- Crypto Section -->
       <section id="cryptoSection" class="section">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -73,7 +72,6 @@
         <button id="loadMoreBtn" onclick="loadMoreCoins()" class="mt-4 mx-auto block bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded px-6 py-2 text-sm">Load More</button>
       </section>
 
-      <!-- Gainers Section -->
       <section id="gainersSection" class="section hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -93,7 +91,6 @@
         </div>
       </section>
 
-      <!-- Losers Section -->
       <section id="losersSection" class="section hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -113,7 +110,6 @@
         </div>
       </section>
 
-      <!-- Stocks Section -->
       <section id="stocksSection" class="section hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -134,13 +130,11 @@
         </div>
       </section>
 
-      <!-- News Section (inside left panel for tab view) -->
       <section id="newsSection" class="section hidden">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="newsGrid"></div>
       </section>
     </div>
 
-    <!-- Right Sidebar (news sidebar) -->
     <aside class="hidden lg:block w-80 bg-gray-900 rounded-lg border border-gray-800 p-4 h-[calc(100vh-180px)] sticky top-20 overflow-hidden">
       <h3 class="text-yellow-500 font-semibold mb-3">Market News</h3>
       <div id="sidebarNews" class="overflow-y-auto h-full space-y-3 text-sm"></div>
@@ -162,25 +156,23 @@ function spark(p) {
   const mn = Math.min(...p), mx = Math.max(...p), r = mx - mn || 1, w = 100, h = 36;
   const cl = p[p.length-1] >= p[0] ? '#0ecb81' : '#f6465d';
   const pts = p.map((v,i) => (i/(p.length-1))*w + ',' + (h - ((v - mn) / r) * h)).join(' ');
-  return `<svg width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="${cl}" stroke-width="1.5"/></svg>`;
+  return '<svg width="' + w + '" height="' + h + '"><polyline points="' + pts + '" fill="none" stroke="' + cl + '" stroke-width="1.5"/></svg>';
 }
 
-// Theme toggle
 (function() {
   const btn = document.getElementById('themeToggle');
   if (!btn) return;
   let theme = localStorage.getItem('hawk-theme') || 'dark';
   document.documentElement.classList.toggle('dark', theme === 'dark');
-  btn.textContent = theme === 'dark' ? '??' : '??';
+  btn.textContent = theme === 'dark' ? '☀️' : '🌙';
   btn.addEventListener('click', () => {
     theme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
     document.documentElement.classList.toggle('dark', theme === 'dark');
     localStorage.setItem('hawk-theme', theme);
-    btn.textContent = theme === 'dark' ? '??' : '??';
+    btn.textContent = theme === 'dark' ? '☀️' : '🌙';
   });
 })();
 
-// Tabs
 window.showSection = function(name) {
   document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
   document.getElementById(name + 'Section').classList.remove('hidden');
@@ -199,26 +191,24 @@ async function loadCoins(page = 1) {
     const r = await fetch(API + '/api/coins?page=' + page + '&per_page=50');
     const coins = await r.json();
     if (page === 1) tb.innerHTML = '';
-    tb.innerHTML += coins.map((c, i) => `
-      <tr class="border-b border-gray-800 hover:bg-gray-800/50 transition">
-        <td class="py-2 px-2 text-gray-500">${(page-1)*50 + i + 1}</td>
-        <td class="py-2 px-2">
-          <img class="coin-icon inline-block" src="${c.image || ''}" onerror="this.style.display='none'">
-          <span class="font-medium cursor-pointer hover:text-yellow-500" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span>
-          <span class="text-gray-500 ml-1">${c.symbol.toUpperCase()}</span>
-        </td>
-        <td class="py-2 px-2 text-right">${fP(c.current_price)}</td>
-        <td class="py-2 px-2 text-right">${fC(c.price_change_percentage_1h_in_currency)}</td>
-        <td class="py-2 px-2 text-right">${fC(c.price_change_percentage_24h_in_currency)}</td>
-        <td class="py-2 px-2 text-right">${fC(c.price_change_percentage_7d_in_currency)}</td>
-        <td class="py-2 px-2 text-right">${fL(c.total_volume)}</td>
-        <td class="py-2 px-2 text-right">${fL(c.market_cap)}</td>
-        <td class="py-2 px-2">${spark(c.sparkline_in_7d?.price)}</td>
-        <td class="py-2 px-2"><button class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-semibold px-3 py-1 rounded" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">TRADE</button></td>
-      </tr>
-    `).join('');
+    tb.innerHTML += coins.map((c, i) => '<tr class="border-b border-gray-800 hover:bg-gray-800/50 transition">' +
+      '<td class="py-2 px-2 text-gray-500">' + ((page-1)*50 + i + 1) + '</td>' +
+      '<td class="py-2 px-2">' +
+        '<img class="coin-icon inline-block" src="' + (c.image || '') + '" onerror="this.style.display=\'none\'">' +
+        '<span class="font-medium cursor-pointer hover:text-yellow-500" onclick="location.href=\'/coin?symbol=' + c.symbol.toUpperCase() + 'USDT\'">' + c.name + '</span>' +
+        '<span class="text-gray-500 ml-1">' + c.symbol.toUpperCase() + '</span>' +
+      '</td>' +
+      '<td class="py-2 px-2 text-right">' + fP(c.current_price) + '</td>' +
+      '<td class="py-2 px-2 text-right">' + fC(c.price_change_percentage_1h_in_currency) + '</td>' +
+      '<td class="py-2 px-2 text-right">' + fC(c.price_change_percentage_24h_in_currency) + '</td>' +
+      '<td class="py-2 px-2 text-right">' + fC(c.price_change_percentage_7d_in_currency) + '</td>' +
+      '<td class="py-2 px-2 text-right">' + fL(c.total_volume) + '</td>' +
+      '<td class="py-2 px-2 text-right">' + fL(c.market_cap) + '</td>' +
+      '<td class="py-2 px-2">' + spark(c.sparkline_in_7d?.price) + '</td>' +
+      '<td class="py-2 px-2"><button class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-semibold px-3 py-1 rounded" onclick="location.href=\'/coin?symbol=' + c.symbol.toUpperCase() + 'USDT\'">TRADE</button></td>' +
+      '</tr>').join('');
   } catch(e) {
-    tb.innerHTML = '<tr><td colspan="10" class="text-center py-8 text-red-400">Failed to load. Retrying�</td></tr>';
+    tb.innerHTML = '<tr><td colspan="10" class="text-center py-8 text-red-400">Failed to load. Retrying...</td></tr>';
     setTimeout(() => loadCoins(page), 5000);
   }
 }
@@ -231,17 +221,15 @@ async function loadGainers() {
   try {
     const r = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_desc&per_page=20&sparkline=false&price_change_percentage=24h');
     const c = await r.json();
-    tb.innerHTML = c.map((c,i) => `
-      <tr class="border-b border-gray-800 hover:bg-gray-800/50">
-        <td class="py-2 px-2">${i+1}</td>
-        <td class="py-2 px-2"><img class="coin-icon" src="${c.image||''}" onerror="this.style.display='none'"><span class="font-medium cursor-pointer hover:text-yellow-500" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span></td>
-        <td class="py-2 px-2 text-right">${fP(c.current_price)}</td>
-        <td class="py-2 px-2 text-right">${fC(c.price_change_percentage_24h_in_currency)}</td>
-        <td class="py-2 px-2 text-right">${fL(c.total_volume)}</td>
-        <td class="py-2 px-2 text-right">${fL(c.market_cap)}</td>
-        <td class="py-2 px-2"><button class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-semibold px-3 py-1 rounded" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">TRADE</button></td>
-      </tr>
-    `).join('');
+    tb.innerHTML = c.map((c,i) => '<tr class="border-b border-gray-800 hover:bg-gray-800/50">' +
+      '<td class="py-2 px-2">' + (i+1) + '</td>' +
+      '<td class="py-2 px-2"><img class="coin-icon" src="' + (c.image||'') + '" onerror="this.style.display=\'none\'"><span class="font-medium cursor-pointer hover:text-yellow-500" onclick="location.href=\'/coin?symbol=' + c.symbol.toUpperCase() + 'USDT\'">' + c.name + '</span></td>' +
+      '<td class="py-2 px-2 text-right">' + fP(c.current_price) + '</td>' +
+      '<td class="py-2 px-2 text-right">' + fC(c.price_change_percentage_24h_in_currency) + '</td>' +
+      '<td class="py-2 px-2 text-right">' + fL(c.total_volume) + '</td>' +
+      '<td class="py-2 px-2 text-right">' + fL(c.market_cap) + '</td>' +
+      '<td class="py-2 px-2"><button class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-semibold px-3 py-1 rounded" onclick="location.href=\'/coin?symbol=' + c.symbol.toUpperCase() + 'USDT\'">TRADE</button></td>' +
+      '</tr>').join('');
   } catch(e) { tb.innerHTML = '<tr><td colspan="7" class="text-center py-8">Failed.</td></tr>'; }
 }
 
@@ -251,17 +239,15 @@ async function loadLosers() {
   try {
     const r = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_asc&per_page=20&sparkline=false&price_change_percentage=24h');
     const c = await r.json();
-    tb.innerHTML = c.map((c,i) => `
-      <tr class="border-b border-gray-800 hover:bg-gray-800/50">
-        <td class="py-2 px-2">${i+1}</td>
-        <td class="py-2 px-2"><img class="coin-icon" src="${c.image||''}" onerror="this.style.display='none'"><span class="font-medium cursor-pointer hover:text-yellow-500" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">${c.name}</span></td>
-        <td class="py-2 px-2 text-right">${fP(c.current_price)}</td>
-        <td class="py-2 px-2 text-right">${fC(c.price_change_percentage_24h_in_currency)}</td>
-        <td class="py-2 px-2 text-right">${fL(c.total_volume)}</td>
-        <td class="py-2 px-2 text-right">${fL(c.market_cap)}</td>
-        <td class="py-2 px-2"><button class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-semibold px-3 py-1 rounded" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">TRADE</button></td>
-      </tr>
-    `).join('');
+    tb.innerHTML = c.map((c,i) => '<tr class="border-b border-gray-800 hover:bg-gray-800/50">' +
+      '<td class="py-2 px-2">' + (i+1) + '</td>' +
+      '<td class="py-2 px-2"><img class="coin-icon" src="' + (c.image||'') + '" onerror="this.style.display=\'none\'"><span class="font-medium cursor-pointer hover:text-yellow-500" onclick="location.href=\'/coin?symbol=' + c.symbol.toUpperCase() + 'USDT\'">' + c.name + '</span></td>' +
+      '<td class="py-2 px-2 text-right">' + fP(c.current_price) + '</td>' +
+      '<td class="py-2 px-2 text-right">' + fC(c.price_change_percentage_24h_in_currency) + '</td>' +
+      '<td class="py-2 px-2 text-right">' + fL(c.total_volume) + '</td>' +
+      '<td class="py-2 px-2 text-right">' + fL(c.market_cap) + '</td>' +
+      '<td class="py-2 px-2"><button class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-semibold px-3 py-1 rounded" onclick="location.href=\'/coin?symbol=' + c.symbol.toUpperCase() + 'USDT\'">TRADE</button></td>' +
+      '</tr>').join('');
   } catch(e) { tb.innerHTML = '<tr><td colspan="7" class="text-center py-8">Failed.</td></tr>'; }
 }
 
@@ -276,16 +262,16 @@ async function loadStocks() {
       const d = await r.json();
       if (d.c) {
         const ch = d.dp || 0;
-        h += `<tr class="border-b border-gray-800 hover:bg-gray-800/50">
-          <td class="py-2 px-2">${s}</td>
-          <td class="py-2 px-2"><span class="font-medium cursor-pointer hover:text-yellow-500" onclick="location.href='/coin?symbol=${s}'">${s}</span></td>
-          <td class="py-2 px-2 text-right">$${d.c.toFixed(2)}</td>
-          <td class="py-2 px-2 text-right">${fC(ch)}</td>
-          <td class="py-2 px-2 text-right">--</td>
-          <td class="py-2 px-2 text-right">--</td>
-          <td class="py-2 px-2 text-right">--</td>
-          <td class="py-2 px-2"><button class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-semibold px-3 py-1 rounded" onclick="location.href='/coin?symbol=${s}'">TRADE</button></td>
-        </tr>`;
+        h += '<tr class="border-b border-gray-800 hover:bg-gray-800/50">' +
+          '<td class="py-2 px-2">' + s + '</td>' +
+          '<td class="py-2 px-2"><span class="font-medium cursor-pointer hover:text-yellow-500" onclick="location.href=\'/coin?symbol=' + s + '\'">' + s + '</span></td>' +
+          '<td class="py-2 px-2 text-right">$' + d.c.toFixed(2) + '</td>' +
+          '<td class="py-2 px-2 text-right">' + fC(ch) + '</td>' +
+          '<td class="py-2 px-2 text-right">--</td>' +
+          '<td class="py-2 px-2 text-right">--</td>' +
+          '<td class="py-2 px-2 text-right">--</td>' +
+          '<td class="py-2 px-2"><button class="bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-semibold px-3 py-1 rounded" onclick="location.href=\'/coin?symbol=' + s + '\'">TRADE</button></td>' +
+          '</tr>';
       }
     } catch(e) {}
   }
@@ -301,17 +287,14 @@ async function loadNews() {
     let items = [];
     if (Array.isArray(d) && d.length > 0) items = d;
     else if (d.results) items = d.results;
-    grid.innerHTML = items.slice(0,12).map(a => `
-      <div class="bg-gray-900 rounded-lg p-3 border border-gray-800">
-        <h3 class="font-medium text-blue-400 text-sm">${a.headline || a.title}</h3>
-        <p class="text-gray-400 text-xs mt-1">${(a.summary || a.description || '').slice(0,150)}</p>
-        <span class="text-gray-500 text-xs">${a.source || a.source_id || ''}</span>
-      </div>
-    `).join('');
+    grid.innerHTML = items.slice(0,12).map(a => '<div class="bg-gray-900 rounded-lg p-3 border border-gray-800">' +
+      '<h3 class="font-medium text-blue-400 text-sm">' + (a.headline || a.title) + '</h3>' +
+      '<p class="text-gray-400 text-xs mt-1">' + (a.summary || a.description || '').slice(0,150) + '</p>' +
+      '<span class="text-gray-500 text-xs">' + (a.source || a.source_id || '') + '</span>' +
+      '</div>').join('');
   } catch(e) { grid.innerHTML = '<p class="text-gray-500">News unavailable.</p>'; }
 }
 
-// Sidebar news (always visible)
 async function loadSidebarNews() {
   const s = document.getElementById('sidebarNews');
   if (!s) return;
@@ -322,12 +305,10 @@ async function loadSidebarNews() {
     let items = [];
     if (Array.isArray(d) && d.length > 0) items = d;
     else if (d.results) items = d.results;
-    s.innerHTML = items.slice(0,15).map(a => `
-      <div class="pb-2 border-b border-gray-800">
-        <div class="font-medium text-blue-400 text-xs cursor-pointer hover:underline">${a.headline || a.title}</div>
-        <div class="text-gray-500 text-xs mt-0.5">${(a.summary || a.description || '').slice(0,120)}</div>
-      </div>
-    `).join('');
+    s.innerHTML = items.slice(0,15).map(a => '<div class="pb-2 border-b border-gray-800">' +
+      '<div class="font-medium text-blue-400 text-xs cursor-pointer hover:underline">' + (a.headline || a.title) + '</div>' +
+      '<div class="text-gray-500 text-xs mt-0.5">' + (a.summary || a.description || '').slice(0,120) + '</div>' +
+      '</div>').join('');
   } catch(e) { s.innerHTML = '<p class="text-gray-500">News unavailable.</p>'; }
 }
 
@@ -347,7 +328,6 @@ async function loadStats() {
   } catch(e) {}
 }
 
-// Search dropdown
 const si = document.getElementById('globalSearch');
 if (si) {
   si.addEventListener('input', async function() {
@@ -358,11 +338,8 @@ if (si) {
       const d = await r.json();
       const coins = d.coins?.slice(0,8) || [];
       const dd = document.getElementById('searchDropdown');
-      dd.innerHTML = coins.map(c => `
-        <div class="flex items-center gap-2 p-2 hover:bg-gray-800 cursor-pointer" onclick="location.href='/coin?symbol=${c.symbol.toUpperCase()}USDT'">
-          <img src="${c.thumb}" class="w-5 h-5"><span>${c.name}</span><span class="text-gray-500 text-xs ml-auto">${c.symbol.toUpperCase()}</span>
-        </div>
-      `).join('');
+      dd.innerHTML = coins.map(c => '<div class="flex items-center gap-2 p-2 hover:bg-gray-800 cursor-pointer" onclick="location.href=\'/coin?symbol=' + c.symbol.toUpperCase() + 'USDT\'">' +
+        '<img src="' + c.thumb + '" class="w-5 h-5"><span>' + c.name + '</span><span class="text-gray-500 text-xs ml-auto">' + c.symbol.toUpperCase() + '</span></div>').join('');
       dd.classList.remove('hidden');
     } catch(e) {}
   });
