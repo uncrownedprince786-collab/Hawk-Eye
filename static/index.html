@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Hawk Eye – Cryptocurrency Prices & Market Data</title>
+<title>Hawk Eye - Cryptocurrency Market</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config={darkMode:'class'}</script>
 <style>
@@ -17,45 +17,65 @@
 </style>
 </head>
 <body class="bg-[#f8f9fa]">
-
 <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
   <div class="max-w-[1440px] mx-auto px-4 lg:px-6 flex items-center h-14 gap-4 lg:gap-6">
     <a href="/" class="text-xl font-bold text-[#0ecb81] tracking-tight shrink-0">HAWK EYE</a>
     <nav class="hidden sm:flex gap-1">
-      <a href="/" class="text-[#0ecb81] px-3 py-2 text-sm font-semibold border-b-2 border-[#0ecb81]">Markets</a>
+      <a href="/" class="text-[#0ecb81] px-3 py-2 text-sm font-semibold">Markets</a>
       <a href="/exchanges" class="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">Exchanges</a>
       <a href="/learn" class="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">Learn</a>
     </nav>
     <div class="flex-1 max-w-md mx-auto">
-      <input id="globalSearch" type="text" placeholder="Search coins…" autocomplete="off"
+      <input id="globalSearch" type="text" placeholder="Search coins..." autocomplete="off"
         class="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#0ecb81] focus:bg-white placeholder-gray-400 transition">
-    </div>
-    <div class="hidden md:flex items-center gap-4 text-xs text-gray-500">
-      <span id="btcDom" class="font-medium text-gray-700">BTC --</span>
-      <span id="fearGreedVal" class="font-medium text-gray-700">Fear --</span>
     </div>
   </div>
 </header>
-
 <div class="max-w-[1440px] mx-auto px-4 lg:px-6 py-4">
-  <div class="flex flex-wrap gap-4 lg:gap-8 text-xs mb-4">
+  <div class="flex flex-wrap gap-4 lg:gap-8 text-xs mb-6">
     <div><span class="text-gray-500">Market Cap</span><br><span id="totalMcap" class="text-sm font-semibold text-gray-900">--</span></div>
     <div><span class="text-gray-500">24h Volume</span><br><span id="totalVolume" class="text-sm font-semibold text-gray-900">--</span></div>
-    <div><span class="text-gray-500">BTC Price</span><br><span id="btcPrice" class="text-sm font-semibold text-gray-900">--</span></div>
-    <div><span class="text-gray-500">ETH Price</span><br><span id="ethPrice" class="text-sm font-semibold text-gray-900">--</span></div>
-    <div><span class="text-gray-500">Fear & Greed</span><br><span id="fearGreedFull" class="text-sm font-semibold text-gray-900">--</span></div>
+    <div><span class="text-gray-500">BTC Dominance</span><br><span id="btcDom" class="text-sm font-semibold text-gray-900">--</span></div>
+    <div><span class="text-gray-500">Fear &amp; Greed</span><br><span id="fearGreedFull" class="text-sm font-semibold text-gray-900">--</span></div>
   </div>
-
-  <div class="flex gap-0 border-b border-gray-200 overflow-x-auto">
-    <button class="tab-btn whitespace-nowrap px-4 lg:px-5 py-2.5 text-sm font-semibold text-[#0ecb81] border-b-2 border-[#0ecb81]" data-tab="crypto">Cryptocurrencies</button>
-    <button class="tab-btn whitespace-nowrap px-4 lg:px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-900" data-tab="gainers">Top Gainers</button>
-    <button class="tab-btn whitespace-nowrap px-4 lg:px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-900" data-tab="losers">Top Losers</button>
-  </div>
-</div>
-
-<main class="max-w-[1440px] mx-auto px-4 lg:px-6 flex flex-col lg:flex-row gap-6">
-  <div class="flex-1 min-w-0">
-    <section id="tab-crypto" class="tab-content">
+  <div class="flex flex-col lg:flex-row gap-6">
+    <div class="flex-1 min-w-0">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <div class="text-xs text-gray-500 mb-1">Market Cap</div>
+          <div class="text-lg font-bold text-gray-900" id="mcapCard">--</div>
+          <div class="text-xs text-gray-400 mt-1" id="mcapChange">--</div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <div class="text-xs text-gray-500 mb-1">24h Volume</div>
+          <div class="text-lg font-bold text-gray-900" id="volCard">--</div>
+          <div class="text-xs text-gray-400 mt-1" id="volChange">--</div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <div class="text-xs text-gray-500 mb-1">BTC Price</div>
+          <div class="text-lg font-bold text-gray-900" id="btcPriceCard">--</div>
+          <div class="text-xs text-green-500 mt-1" id="btcChange">--</div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <div class="text-xs text-gray-500 mb-1">Fear &amp; Greed</div>
+          <div class="text-lg font-bold text-gray-900" id="fgValue">--</div>
+          <div class="text-xs text-gray-400 mt-1" id="fgClass">--</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <h3 class="text-sm font-semibold text-gray-900 mb-3">Top Gainers</h3>
+          <div id="gainersBox" class="space-y-2 text-xs"></div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <h3 class="text-sm font-semibold text-gray-900 mb-3">Top Losers</h3>
+          <div id="losersBox" class="space-y-2 text-xs"></div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <h3 class="text-sm font-semibold text-gray-900 mb-3">Trending</h3>
+          <div id="trendingBox" class="space-y-2 text-xs"></div>
+        </div>
+      </div>
       <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -78,63 +98,18 @@
         </div>
       </div>
       <button onclick="loadMoreCoins()" class="mt-4 mx-auto block bg-white border border-gray-200 rounded-xl px-8 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition shadow-sm">Load More</button>
-    </section>
-
-    <section id="tab-gainers" class="tab-content hidden">
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-gray-500 text-xs border-b border-gray-100 bg-gray-50/50">
-                <th class="text-left py-3 px-3 font-semibold">#</th>
-                <th class="text-left py-3 px-3 font-semibold">Name</th>
-                <th class="text-right py-3 px-3 font-semibold">Price</th>
-                <th class="text-right py-3 px-3 font-semibold">24h</th>
-                <th class="text-right py-3 px-3 font-semibold hidden md:table-cell">Volume</th>
-                <th class="text-right py-3 px-3 font-semibold hidden md:table-cell">Market Cap</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="gainersBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="tab-losers" class="tab-content hidden">
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-gray-500 text-xs border-b border-gray-100 bg-gray-50/50">
-                <th class="text-left py-3 px-3 font-semibold">#</th>
-                <th class="text-left py-3 px-3 font-semibold">Name</th>
-                <th class="text-right py-3 px-3 font-semibold">Price</th>
-                <th class="text-right py-3 px-3 font-semibold">24h</th>
-                <th class="text-right py-3 px-3 font-semibold hidden md:table-cell">Volume</th>
-                <th class="text-right py-3 px-3 font-semibold hidden md:table-cell">Market Cap</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="losersBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <aside class="hidden xl:block w-[340px] flex-shrink-0">
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sticky top-20 max-h-[calc(100vh-100px)] overflow-hidden flex flex-col">
-      <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>Market News
-      </h3>
-      <div id="sidebarNews" class="flex-1 overflow-y-auto space-y-3 text-xs"></div>
     </div>
-  </aside>
-</main>
-
+    <aside class="hidden xl:block w-[340px] flex-shrink-0">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sticky top-20 max-h-[calc(100vh-100px)] overflow-hidden flex flex-col">
+        <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>Market News
+        </h3>
+        <div id="sidebarNews" class="flex-1 overflow-y-auto space-y-3 text-xs"></div>
+      </div>
+    </aside>
+  </div>
+</div>
 <div id="searchDropdown" class="hidden fixed top-14 left-1/2 -translate-x-1/2 w-[420px] max-w-[90vw] bg-white border border-gray-200 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto"></div>
-
 <script src="/static/js/app.js"></script>
 </body>
 </html>
