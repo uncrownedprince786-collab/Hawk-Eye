@@ -17,6 +17,14 @@ def _s(val, fallback=0):
         return fallback
     return val
 
+def _s(val, fallback=0):
+    """Return fallback if val is None, NaN, or infinity."""
+    if val is None:
+        return fallback
+    if isinstance(val, float) and (math.isnan(val) or math.isinf(val)):
+        return fallback
+    return val
+
 # Read the current agent.py
 with open('core/agent.py', 'r', encoding='utf-8') as f:
     content = f.read()
