@@ -13,6 +13,19 @@ from core.agent import generate_trade_plan
 from services.streams import BinanceStream
 from core.config import NEWS_DATA_KEY
 
+import math
+
+def _safe_float(obj):
+    if isinstance(obj, dict):
+        return {k: _safe_float(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_safe_float(v) for v in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+    return obj
+
+
 load_dotenv()
 app = FastAPI(title="Hawk Eye Terminal")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -216,7 +229,7 @@ async def analyze(request: Request):
         }
 
         trade_plan = generate_trade_plan(full_data)
-        return JSONResponse({"trade_plan":trade_plan, "data_snapshot":full_data})
+        return JSONResponse({"trade_plan":trade_plan, "data_snapshot":_safe_float(full_data)})
     except Exception as e:
         return JSONResponse({"error":str(e)}, status_code=500)
 
