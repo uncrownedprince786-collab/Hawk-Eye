@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -37,22 +37,24 @@
     </div>
   </div>
 </header>
-<div class="max-w-[1440px] mx-auto px-4 lg:px-6 py-6">
-  <div class="flex flex-wrap gap-6 lg:gap-8 text-xs mb-8">
-    <div><span class="text-gray-500">Market Cap</span><br><span id="totalMcap" class="text-sm font-semibold text-gray-900">--</span></div>
-    <div><span class="text-gray-500">24h Volume</span><br><span id="totalVolume" class="text-sm font-semibold text-gray-900">--</span></div>
-    <div><span class="text-gray-500">BTC Dominance</span><br><span id="btcDom" class="text-sm font-semibold text-gray-900">--</span></div>
-    <div><span class="text-gray-500">Fear &amp; Greed</span><br><span id="fearGreedFull" class="text-sm font-semibold text-gray-900">--</span></div>
+<div class="w-full max-w-[1440px] mx-auto px-4 lg:px-6 py-4">
+  <div class="w-full mb-6">
+    <div class="flex flex-wrap gap-4 lg:gap-8 text-xs">
+      <div><span class="text-gray-500">Market Cap</span><br><span id="totalMcap" class="text-sm font-semibold text-gray-900">--</span></div>
+      <div><span class="text-gray-500">24h Volume</span><br><span id="totalVolume" class="text-sm font-semibold text-gray-900">--</span></div>
+      <div><span class="text-gray-500">BTC Dominance</span><br><span id="btcDom" class="text-sm font-semibold text-gray-900">--</span></div>
+      <div><span class="text-gray-500">Fear &amp; Greed</span><br><span id="fearGreedFull" class="text-sm font-semibold text-gray-900">--</span></div>
+    </div>
   </div>
-  <div class="flex flex-col lg:flex-row gap-6">
-    <div class="flex-1 min-w-0">
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="grid grid-cols-12 gap-6 items-start w-full">
+    <div class="col-span-12 lg:col-span-9 space-y-6">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5"><div class="text-xs text-gray-500 mb-1">Market Cap</div><div class="text-lg font-bold text-gray-900" id="mcapCard">--</div><div class="text-xs text-gray-400 mt-1" id="mcapChange">--</div></div>
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5"><div class="text-xs text-gray-500 mb-1">24h Volume</div><div class="text-lg font-bold text-gray-900" id="volCard">--</div><div class="text-xs text-gray-400 mt-1" id="volChange">--</div></div>
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5"><div class="text-xs text-gray-500 mb-1">BTC Price</div><div class="text-lg font-bold text-gray-900" id="btcPriceCard">--</div><div class="text-xs mt-1" id="btcChange">--</div></div>
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5"><div class="text-xs text-gray-500 mb-1">Fear &amp; Greed</div><div class="text-lg font-bold text-gray-900" id="fgValue">--</div><div class="text-xs text-gray-400 mt-1" id="fgClass">--</div></div>
       </div>
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5"><h3 class="text-sm font-semibold text-gray-900 mb-3">Top Gainers</h3><div id="gainersBox" class="space-y-3 text-xs"></div></div>
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5"><h3 class="text-sm font-semibold text-gray-900 mb-3">Top Losers</h3><div id="losersBox" class="space-y-3 text-xs"></div></div>
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5"><h3 class="text-sm font-semibold text-gray-900 mb-3">Trending</h3><div id="trendingBox" class="space-y-3 text-xs"></div></div>
@@ -67,11 +69,9 @@
       </div>
       <button onclick="loadMoreCoins()" class="mt-4 mx-auto block bg-white border border-gray-200 rounded-xl px-8 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition shadow-sm">Load More</button>
     </div>
-    <aside class="hidden xl:block w-[340px] flex-shrink-0">
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 sticky top-20 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
-        <h3 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2"><span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>Market News</h3>
-        <div id="sidebarNews" class="flex-1 overflow-y-auto space-y-4 text-xs"></div>
-      </div>
+    <aside class="col-span-12 lg:col-span-3 bg-white border border-gray-100 rounded-2xl p-5 sticky top-4 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
+      <h3 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2"><span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>Market News</h3>
+      <div id="sidebarNews" class="flex-1 overflow-y-auto border-l-2 border-gray-100 pl-4 space-y-6 relative"></div>
     </aside>
   </div>
 </div>
